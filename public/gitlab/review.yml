@@ -1,0 +1,9 @@
+# can use /lgtm
+reviewers:
+  - reviewer1
+  - reviewer2
+
+# can use /approve
+approvers:
+  - approver1
+  - approver2

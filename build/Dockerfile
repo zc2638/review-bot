@@ -10,5 +10,6 @@ FROM alpine
 ENV TS="Asia/Shanghai"
 COPY --from=builder /work/app /work/app
 COPY --from=builder /work/config /work/config
+COPY --from=builder /work/public /work/public
 WORKDIR /work
 CMD ["./app"]
