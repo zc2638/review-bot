@@ -138,9 +138,50 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 		})
 }
 
+func getMembers(pid string, names []string) ([]scm.ProjectMember, error) {
+	var projectMembers, members []scm.ProjectMember
+	for _, name := range names {
+		if member, ok := scm.UserCached().Get(name); ok {
+			members = append(members, member)
+			continue
+		}
+		if projectMembers == nil {
+			projectMembers, _ = global.SCM().ListProjectMembers(pid)
+			for _, v := range projectMembers {
+				scm.UserCached().Add(v.Username, v)
+			}
+		}
+		if member, ok := scm.UserCached().Get(name); ok {
+			members = append(members, member)
+		}
+	}
+	return members, nil
+}
+
 // 当pull request创建时，添加标签
 func openEvent(event *gitlab.MergeEvent) error {
+	// 初始化所有需要的label
 	_ = initLabels(event)
+
+	// 获取仓库review配置
+	config, err := global.SCM().GetReviewConfig(
+		event.Project.PathWithNamespace,
+		"master",
+	)
+	if err != nil {
+		return err
+	}
+
+	// 获取reviewers的用户id
+	members, err := getMembers(event.Project.PathWithNamespace, config.Reviewers)
+	if err != nil {
+		return err
+	}
+	var assigneeIDs []int
+	for _, v := range members {
+		assigneeIDs = append(assigneeIDs, v.ID)
+	}
+
 	var addLabels []string
 	for _, v := range scm.Labels {
 		if strings.Contains(event.ObjectAttributes.Description,
@@ -152,11 +193,13 @@ func openEvent(event *gitlab.MergeEvent) error {
 	if len(addLabels) == 0 {
 		addLabels = []string{scm.Labels[scm.LabelKindMissing].Name}
 	}
+
 	return global.SCM().UpdatePullRequest(
 		event.Project.PathWithNamespace,
 		event.ObjectAttributes.IID,
 		&scm.PullRequest{
-			AddLabels: addLabels,
+			AddLabels:   addLabels,
+			AssigneeIDs: assigneeIDs,
 		})
 }
 

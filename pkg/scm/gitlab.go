@@ -124,3 +124,34 @@ func (s *gitlabClient) GetReviewConfig(pid, ref string) (*ReviewConfig, error) {
 	}
 	return &config, err
 }
+
+func (s *gitlabClient) ListProjectMembers(pid string) ([]ProjectMember, error) {
+	var result []ProjectMember
+	var page int
+	for {
+		page++
+		opt := &gitlab.ListProjectMembersOptions{
+			ListOptions: gitlab.ListOptions{
+				Page:    page,
+				PerPage: 100,
+			},
+		}
+		members, _, err := s.client.ProjectMembers.ListAllProjectMembers(pid, opt)
+		if err != nil {
+			return nil, err
+		}
+		for _, member := range members {
+			result = append(result, ProjectMember{
+				ID:        member.ID,
+				Username:  member.Username,
+				Email:     member.Email,
+				Name:      member.Name,
+				AvatarURL: member.AvatarURL,
+			})
+		}
+		if len(members) < 100 {
+			break
+		}
+	}
+	return result, nil
+}

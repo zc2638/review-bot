@@ -28,4 +28,5 @@ type Interface interface {
 	UpdatePullRequest(pid string, prID int, data *PullRequest) error
 	MergePullRequest(pid string, prID int) error
 	GetReviewConfig(pid, ref string) (*ReviewConfig, error)
+	ListProjectMembers(pid string) ([]ProjectMember, error)
 }

@@ -35,3 +35,24 @@ func (c Cache) IsExist(key string) bool {
 	_, ok := c[key]
 	return ok
 }
+
+var userCache = UserCache{}
+
+func UserCached() UserCache {
+	return userCache
+}
+
+type UserCache map[string]ProjectMember
+
+func (c UserCache) Add(name string, member ProjectMember) {
+	c[name] = member
+}
+
+func (c UserCache) Remove(name string) {
+	delete(c, name)
+}
+
+func (c UserCache) Get(name string) (ProjectMember, bool) {
+	member, ok := c[name]
+	return member, ok
+}

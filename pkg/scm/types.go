@@ -31,6 +31,14 @@ type Label struct {
 	Description string    `json:"description"`
 }
 
+type ProjectMember struct {
+	ID        int    `json:"id"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatar_url"`
+}
+
 type PullRequest struct {
 	Title        string   `json:"title"`
 	Description  string   `json:"description"`
