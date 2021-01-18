@@ -1,0 +1,4 @@
+scm:
+  host: https://gitlab.com
+  token: <your-private-token>
+  secret: <your-webhook-secret>
