@@ -138,11 +138,12 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 		})
 }
 
-func getMembers(pid string, names []string) ([]scm.ProjectMember, error) {
-	var projectMembers, members []scm.ProjectMember
+func getMembers(pid string, names []string) (map[string]scm.ProjectMember, error) {
+	var projectMembers []scm.ProjectMember
+	members := make(map[string]scm.ProjectMember) // 由于gitlab可能存在仅支持一个assignee，采用map随机获取
 	for _, name := range names {
 		if member, ok := scm.UserCached().Get(name); ok {
-			members = append(members, member)
+			members[name] = member
 			continue
 		}
 		if projectMembers == nil {
@@ -152,7 +153,7 @@ func getMembers(pid string, names []string) ([]scm.ProjectMember, error) {
 			}
 		}
 		if member, ok := scm.UserCached().Get(name); ok {
-			members = append(members, member)
+			members[name] = member
 		}
 	}
 	return members, nil
