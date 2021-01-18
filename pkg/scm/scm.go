@@ -26,7 +26,7 @@ type Interface interface {
 	ListLabels(pid string) ([]Label, error)
 	CreateLabel(pid string, label *Label) error
 	UpdatePullRequest(pid string, prID int, data *PullRequest) error
-	MergePullRequest(pid string, prID int) error
+	MergePullRequest(pid string, prID int, data *MergePullRequest) error
 	GetReviewConfig(pid, ref string) (*ReviewConfig, error)
 	ListProjectMembers(pid string) ([]ProjectMember, error)
 }

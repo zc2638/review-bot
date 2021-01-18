@@ -26,6 +26,7 @@ type Label struct {
 	Order       string    `json:"order"`
 	Type        LabelType `json:"type"`
 	Name        string    `json:"name"`
+	Short       string    `json:"short"`
 	Color       string    `json:"color"`
 	TextColor   string    `json:"text_color"`
 	Description string    `json:"description"`
@@ -48,4 +49,11 @@ type PullRequest struct {
 	Labels       []string `json:"labels"`
 	AddLabels    []string `json:"add_labels"`
 	RemoveLabels []string `json:"remove_labels"`
+}
+
+type MergePullRequest struct {
+	SquashCommitMessage       string `json:"squash_commit_message"`
+	Squash                    bool   `json:"squash"`
+	ShouldRemoveSourceBranch  bool   `json:"should_remove_source_branch"`
+	MergeWhenPipelineSucceeds bool   `json:"merge_when_pipeline_succeeds"`
 }

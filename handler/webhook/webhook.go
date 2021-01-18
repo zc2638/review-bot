@@ -221,9 +221,32 @@ func updateEvent(event *gitlab.MergeEvent) error {
 		}
 	}
 	if lgtmExists && approvedExists {
+		desc := event.ObjectAttributes.Description
+		title := ""
+		titleData := strings.Split(desc, "<!-- title -->")
+		if len(titleData) > 1 {
+			titleData = strings.Split(titleData[1], "<!-- end title -->")
+			if len(titleData) > 1 {
+				title = strings.TrimSpace(strings.TrimSuffix(titleData[0], "\n"))
+			}
+		}
+		kind := ""
+		for _, v := range scm.Labels {
+			if strings.Contains(desc, v.Order) {
+				kind = v.Short
+				break
+			}
+		}
+
+		opt := &scm.MergePullRequest{}
+		if title != "" {
+			opt.Squash = true
+			opt.SquashCommitMessage = kind + ": " + title
+		}
 		return global.SCM().MergePullRequest(
 			event.Project.PathWithNamespace,
 			event.ObjectAttributes.IID,
+			opt,
 		)
 	}
 	return nil

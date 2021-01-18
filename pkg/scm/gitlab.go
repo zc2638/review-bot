@@ -104,8 +104,18 @@ func (s *gitlabClient) UpdatePullRequest(pid string, prID int, data *PullRequest
 	return err
 }
 
-func (s *gitlabClient) MergePullRequest(pid string, prID int) error {
+func (s *gitlabClient) MergePullRequest(pid string, prID int, data *MergePullRequest) error {
 	opt := &gitlab.AcceptMergeRequestOptions{}
+	if data.Squash && data.SquashCommitMessage != "" {
+		opt.Squash = &data.Squash
+		opt.SquashCommitMessage = &data.SquashCommitMessage
+	}
+	if data.ShouldRemoveSourceBranch {
+		opt.ShouldRemoveSourceBranch = &data.ShouldRemoveSourceBranch
+	}
+	if data.MergeWhenPipelineSucceeds {
+		opt.MergeWhenPipelineSucceeds = &data.MergeWhenPipelineSucceeds
+	}
 	_, _, err := s.client.MergeRequests.AcceptMergeRequest(pid, prID, opt)
 	return err
 }
