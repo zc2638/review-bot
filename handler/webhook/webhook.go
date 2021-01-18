@@ -185,8 +185,7 @@ func openEvent(event *gitlab.MergeEvent) error {
 
 	var addLabels []string
 	for _, v := range scm.Labels {
-		if strings.Contains(event.ObjectAttributes.Description,
-			"/"+strings.ReplaceAll(v.Name, "/", " ")) {
+		if strings.Contains(event.ObjectAttributes.Description, v.Order) {
 			addLabels = append(addLabels, v.Name)
 			break
 		}
@@ -227,7 +226,10 @@ func updateEvent(event *gitlab.MergeEvent) error {
 		if len(titleData) > 1 {
 			titleData = strings.Split(titleData[1], "<!-- end title -->")
 			if len(titleData) > 1 {
-				title = strings.TrimSpace(strings.TrimSuffix(titleData[0], "\n"))
+				title = strings.TrimSuffix(titleData[0], "\n")
+				title = strings.TrimSpace(title)
+				title = strings.TrimSuffix(title, ">")
+				title = strings.TrimSpace(title)
 			}
 		}
 		kind := ""
@@ -249,7 +251,35 @@ func updateEvent(event *gitlab.MergeEvent) error {
 			opt,
 		)
 	}
-	return nil
+	var addLabels, removeLabels []string
+	var exists bool
+	for _, v := range scm.Labels {
+		if v.Type != scm.LabelTypeKind {
+			continue
+		}
+		if strings.Contains(event.ObjectAttributes.Description, v.Order) {
+			for _, label := range event.Labels {
+				if label.Name == v.Name {
+					exists = true
+					break
+				}
+			}
+			if exists {
+				break
+			}
+			addLabels = append(addLabels, v.Name)
+		} else {
+			removeLabels = append(removeLabels, v.Name)
+		}
+	}
+	return global.SCM().UpdatePullRequest(
+		event.Project.PathWithNamespace,
+		event.ObjectAttributes.IID,
+		&scm.PullRequest{
+			AddLabels:    addLabels,
+			RemoveLabels: removeLabels,
+		},
+	)
 }
 
 // 初始化所有label
