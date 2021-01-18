@@ -7,10 +7,12 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/flate"
+	"crypto/md5"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -20,6 +22,59 @@ import (
 func index() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctr.OK(w, "Hello Bot!")
+	}
+}
+
+func secret() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		namespace := r.URL.Query().Get("namespace")
+		name := r.URL.Query().Get("name")
+		slug := path.Join(namespace, name)
+		hash := md5.New()
+		_, _ = hash.Write([]byte(slug))
+		data := hash.Sum(nil)
+		ctr.OK(w, data)
+	}
+}
+
+func download(staticPath string) http.HandlerFunc {
+	if staticPath == "" {
+		staticPath = "public"
+	}
+	return func(w http.ResponseWriter, r *http.Request) {
+		dir := r.URL.Query().Get("type")
+		if dir == "" {
+			dir = "gitlab"
+		}
+		fileName := dir + ".zip"
+		zipFilePath := filepath.Join(staticPath, fileName)
+		_, err := os.Stat(zipFilePath)
+		if err != nil && !os.IsNotExist(err) {
+			ctr.InternalError(w, err)
+			return
+		}
+		var data []byte
+		if os.IsNotExist(err) {
+			data, err = buildZIP(staticPath, dir)
+			if err != nil {
+				ctr.InternalError(w, err)
+				return
+			}
+			if err := ioutil.WriteFile(zipFilePath, data, os.ModePerm); err != nil {
+				ctr.InternalError(w, err)
+				return
+			}
+		} else {
+			data, err = ioutil.ReadFile(zipFilePath)
+			if err != nil {
+				ctr.InternalError(w, err)
+				return
+			}
+		}
+
+		w.Header().Add("Content-Type", "application/octet-stream")
+		w.Header().Add("content-disposition", "attachment; filename=\""+fileName+"\"")
+		_, _ = w.Write(data)
 	}
 }
 
@@ -64,45 +119,4 @@ func buildZIP(static, dir string) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-func download(staticPath string) http.HandlerFunc {
-	if staticPath == "" {
-		staticPath = "public"
-	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		dir := r.URL.Query().Get("type")
-		if dir == "" {
-			dir = "gitlab"
-		}
-		fileName := dir + ".zip"
-		zipFilePath := filepath.Join(staticPath, fileName)
-		_, err := os.Stat(zipFilePath)
-		if err != nil && !os.IsNotExist(err) {
-			ctr.InternalError(w, err)
-			return
-		}
-		var data []byte
-		if os.IsNotExist(err) {
-			data, err = buildZIP(staticPath, dir)
-			if err != nil {
-				ctr.InternalError(w, err)
-				return
-			}
-			if err := ioutil.WriteFile(zipFilePath, data, os.ModePerm); err != nil {
-				ctr.InternalError(w, err)
-				return
-			}
-		} else {
-			data, err = ioutil.ReadFile(zipFilePath)
-			if err != nil {
-				ctr.InternalError(w, err)
-				return
-			}
-		}
-
-		w.Header().Add("Content-Type", "application/octet-stream")
-		w.Header().Add("content-disposition", "attachment; filename=\""+fileName+"\"")
-		_, _ = w.Write(data)
-	}
 }

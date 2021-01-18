@@ -257,6 +257,9 @@ func updateEvent(event *gitlab.MergeEvent) error {
 		if v.Type != scm.LabelTypeKind {
 			continue
 		}
+		if v.Name == scm.Labels[scm.LabelKindMissing].Name {
+			continue
+		}
 		if strings.Contains(event.ObjectAttributes.Description, v.Order) {
 			for _, label := range event.Labels {
 				if label.Name == v.Name {

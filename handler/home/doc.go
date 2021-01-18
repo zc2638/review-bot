@@ -34,8 +34,18 @@ func Register(doc *swagger.API) {
 			endpoint.NoSecurity(),
 		),
 		endpoint.New(
+			http.MethodGet, "/secret",
+			endpoint.Handler(secret()),
+			endpoint.Summary("生成webhook密钥"),
+			endpoint.Query("namespace", "string", "仓库中间名称", true),
+			endpoint.Query("name", "string", "仓库名称", true),
+			endpoint.ResponseSuccess(),
+			endpoint.NoSecurity(),
+		),
+		endpoint.New(
 			http.MethodGet, "/download",
 			endpoint.Handler(download("")),
+			endpoint.Summary("模板文件下载"),
 			endpoint.QueryDefault("type", "string", "版本系统类型", "gitlab", true),
 			endpoint.ResponseSuccess(),
 			endpoint.NoSecurity(),
