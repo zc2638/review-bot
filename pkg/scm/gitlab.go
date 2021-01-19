@@ -104,6 +104,15 @@ func (s *gitlabClient) UpdatePullRequest(pid string, prID int, data *PullRequest
 	return err
 }
 
+func (s *gitlabClient) CreatePullRequestComment(pid string, prID int, comment string) error {
+	if comment == "" {
+		return nil
+	}
+	opt := &gitlab.CreateMergeRequestNoteOptions{Body: &comment}
+	_, _, err := s.client.Notes.CreateMergeRequestNote(pid, prID, opt)
+	return err
+}
+
 func (s *gitlabClient) MergePullRequest(pid string, prID int, data *MergePullRequest) error {
 	opt := &gitlab.AcceptMergeRequestOptions{}
 	if data.Squash && data.SquashCommitMessage != "" {

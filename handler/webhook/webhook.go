@@ -138,7 +138,7 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 
 func getMembers(pid string, names []string) (map[string]scm.ProjectMember, error) {
 	var projectMembers []scm.ProjectMember
-	members := make(map[string]scm.ProjectMember) // 由于gitlab可能存在仅支持一个assignee，采用map随机获取
+	members := make(map[string]scm.ProjectMember)
 	for _, name := range names {
 		if member, ok := scm.UserCached().Get(name); ok {
 			members[name] = member
@@ -171,16 +171,6 @@ func openEvent(event *gitlab.MergeEvent) error {
 		return err
 	}
 
-	// 获取reviewers的用户id
-	members, err := getMembers(event.Project.PathWithNamespace, config.Reviewers)
-	if err != nil {
-		return err
-	}
-	var assigneeIDs []int
-	for _, v := range members {
-		assigneeIDs = append(assigneeIDs, v.ID)
-	}
-
 	var addLabels []string
 	for _, v := range scm.Labels {
 		if strings.Contains(event.ObjectAttributes.Description, v.Order) {
@@ -192,13 +182,38 @@ func openEvent(event *gitlab.MergeEvent) error {
 		addLabels = []string{scm.Labels[scm.LabelKindMissing].Name}
 	}
 
-	return global.SCM().UpdatePullRequest(
+	if err := global.SCM().UpdatePullRequest(
 		event.Project.PathWithNamespace,
 		event.ObjectAttributes.IID,
 		&scm.PullRequest{
-			AddLabels:   addLabels,
-			AssigneeIDs: assigneeIDs,
-		})
+			AddLabels: addLabels,
+		}); err != nil {
+		return err
+	}
+
+	// 获取reviewers的用户id
+	members, err := getMembers(event.Project.PathWithNamespace, config.Reviewers)
+	if err != nil {
+		return err
+	}
+	if len(members) > 0 {
+		count := 0
+		reviewData := "等待 "
+		for _, v := range members {
+			reviewData += "@" + v.Username + " "
+			count++
+			if count > 1 { // 限制每次请求两位reviewer
+				break
+			}
+		}
+		reviewData += "处理review请求"
+		return global.SCM().CreatePullRequestComment(
+			event.Project.PathWithNamespace,
+			event.ObjectAttributes.IID,
+			reviewData,
+		)
+	}
+	return nil
 }
 
 func updateEvent(event *gitlab.MergeEvent) error {
