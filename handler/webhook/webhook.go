@@ -238,10 +238,10 @@ func updateEvent(event *gitlab.MergeEvent) error {
 		titleData := strings.Split(desc, "<!-- title -->")
 		if len(titleData) > 1 {
 			titleData = strings.Split(titleData[1], "<!-- end title -->")
-			if len(titleData) > 1 {
+			if len(titleData) > 0 {
 				title = strings.TrimSuffix(titleData[0], "\n")
 				title = strings.TrimSpace(title)
-				title = strings.TrimSuffix(title, ">")
+				title = strings.TrimLeft(title, ">")
 				title = strings.TrimSpace(title)
 			}
 		}
