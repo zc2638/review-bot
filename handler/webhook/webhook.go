@@ -257,7 +257,9 @@ func updateEvent(event *gitlab.MergeEvent) error {
 			}
 		}
 
-		opt := &scm.MergePullRequest{}
+		opt := &scm.MergePullRequest{
+			MergeWhenPipelineSucceeds: true,
+		}
 		if kind != "" && title != "" {
 			opt.Squash = true
 			opt.SquashCommitMessage = kind + ": " + title
