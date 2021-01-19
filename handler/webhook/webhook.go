@@ -165,7 +165,7 @@ func openEvent(event *gitlab.MergeEvent) error {
 	// 获取仓库review配置
 	config, err := global.SCM().GetReviewConfig(
 		event.Project.PathWithNamespace,
-		"master",
+		event.Project.DefaultBranch, // 获取默认分支的配置
 	)
 	if err != nil {
 		return err
