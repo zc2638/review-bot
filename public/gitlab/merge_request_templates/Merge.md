@@ -1,6 +1,6 @@
 功能分类:
 
-/kind feature
+/kind merge
 
 提交内容的简短描述:
 <!-- title -->

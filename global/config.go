@@ -29,6 +29,8 @@ import (
 
 const EnvPrefix = "BOT"
 
+const JWTSecret = "bot"
+
 type Config struct {
 	Server server.Config `json:"server"`
 	SCM    scm.Config    `json:"scm"`

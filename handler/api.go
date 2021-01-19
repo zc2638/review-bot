@@ -24,7 +24,6 @@ import (
 
 	"github.com/go-chi/cors"
 	"github.com/zc2638/swag"
-	"github.com/zc2638/swag/swagger"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
@@ -39,9 +38,6 @@ func New() http.Handler {
 	)
 
 	apiDoc := swag.New(
-		swag.SecurityScheme("token",
-			swagger.APIKeySecurity("Authorization", "header")),
-		swag.Security("token"),
 		swag.Title("Review Bot API Doc"),
 	)
 	apiDoc.AddEndpointFunc(
@@ -51,8 +47,7 @@ func New() http.Handler {
 	for path, endpoints := range apiDoc.Paths {
 		mux.Handle(path, endpoints)
 	}
-	//mux.Handle("/swagger", apiDoc.Handler(false))
-
+	mux.Handle("/swagger", apiDoc.Handler(false))
 	mux.Post("/webhook", webhook.HandlerEvent())
 	return mux
 }

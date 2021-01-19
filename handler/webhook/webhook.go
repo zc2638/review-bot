@@ -33,8 +33,14 @@ import (
 
 func HandlerEvent() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if global.Cfg().SCM.Secret != r.Header.Get("X-Gitlab-Token") {
-			ctr.BadRequest(w, errors.New("Signature Invalid"))
+		token := r.Header.Get("X-Gitlab-Token")
+		claims, err := util.JwtParse(token, global.JWTSecret)
+		if err != nil {
+			ctr.Unauthorized(w, errors.New("Signature Token Invalid"))
+			return
+		}
+		if claims.Auth.CheckSign(global.Cfg().SCM.Secret) {
+			ctr.Unauthorized(w, errors.New("Signature Invalid"))
 			return
 		}
 		defer r.Body.Close()
@@ -118,14 +124,6 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 		}
 	}
 
-	// 匹配kind标签，仅限一个
-	for _, v := range scm.Labels {
-		if v.Type == scm.LabelTypeKind && strings.Contains(note, v.Order) {
-			addLabels = append(addLabels, v.Name)
-			removeLabels = append(removeLabels, scm.Labels[scm.LabelKindMissing].Name)
-			break
-		}
-	}
 	if len(addLabels) == 0 && len(removeLabels) == 0 {
 		return nil
 	}
@@ -221,7 +219,7 @@ func updateEvent(event *gitlab.MergeEvent) error {
 	}
 	if lgtmExists && approvedExists {
 		desc := event.ObjectAttributes.Description
-		title := ""
+		var title, kind string
 		titleData := strings.Split(desc, "<!-- title -->")
 		if len(titleData) > 1 {
 			titleData = strings.Split(titleData[1], "<!-- end title -->")
@@ -232,16 +230,20 @@ func updateEvent(event *gitlab.MergeEvent) error {
 				title = strings.TrimSpace(title)
 			}
 		}
-		kind := ""
 		for _, v := range scm.Labels {
-			if strings.Contains(desc, v.Order) {
-				kind = v.Short
-				break
+			if v.Type != scm.LabelTypeKind {
+				continue
+			}
+			for _, vv := range event.Labels {
+				if vv.Name == v.Name {
+					kind = v.Short
+					break
+				}
 			}
 		}
 
 		opt := &scm.MergePullRequest{}
-		if title != "" {
+		if kind != "" && title != "" {
 			opt.Squash = true
 			opt.SquashCommitMessage = kind + ": " + title
 		}
@@ -255,9 +257,6 @@ func updateEvent(event *gitlab.MergeEvent) error {
 	var exists bool
 	for _, v := range scm.Labels {
 		if v.Type != scm.LabelTypeKind {
-			continue
-		}
-		if v.Name == scm.Labels[scm.LabelKindMissing].Name {
 			continue
 		}
 		if strings.Contains(event.ObjectAttributes.Description, v.Order) {
@@ -274,6 +273,18 @@ func updateEvent(event *gitlab.MergeEvent) error {
 		} else {
 			removeLabels = append(removeLabels, v.Name)
 		}
+	}
+	if len(addLabels) == 0 && !exists {
+		missingName := scm.Labels[scm.LabelKindMissing].Name
+		addLabels = []string{missingName}
+		var currentRemoveLabels []string
+		for _, v := range removeLabels {
+			if v == missingName {
+				continue
+			}
+			currentRemoveLabels = append(currentRemoveLabels, v)
+		}
+		removeLabels = currentRemoveLabels
 	}
 	return global.SCM().UpdatePullRequest(
 		event.Project.PathWithNamespace,

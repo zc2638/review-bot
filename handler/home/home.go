@@ -7,7 +7,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/flate"
-	"crypto/md5"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +14,13 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"github.com/pkg/errors"
+
+	"github.com/zc2638/review-bot/global"
+
+	"github.com/zc2638/review-bot/pkg/util"
 
 	"github.com/pkgms/go/ctr"
 )
@@ -29,11 +35,25 @@ func secret() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		namespace := r.URL.Query().Get("namespace")
 		name := r.URL.Query().Get("name")
+		if strings.TrimSpace(namespace) == "" ||
+			strings.TrimSpace(name) == "" {
+			ctr.BadRequest(w, errors.New("namespace or name required"))
+			return
+		}
 		slug := path.Join(namespace, name)
-		hash := md5.New()
-		_, _ = hash.Write([]byte(slug))
-		data := hash.Sum(nil)
-		ctr.OK(w, data)
+		authInfo := &util.JwtAuthInfo{
+			Slug:      slug,
+			CreatedAt: time.Now(),
+		}
+		authInfo.Signature = authInfo.BuildSign(global.Cfg().SCM.Secret)
+		token, err := util.JwtCreate(util.JwtClaims{
+			Auth: authInfo,
+		}, global.JWTSecret)
+		if err != nil {
+			ctr.InternalError(w, err)
+			return
+		}
+		ctr.OK(w, token)
 	}
 }
 

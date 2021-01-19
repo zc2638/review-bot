@@ -26,6 +26,7 @@ const (
 	LabelHold
 	LabelHoldCancel
 	LabelKindMissing
+	LabelKindMerge
 	LabelKindFeature
 	LabelKindBugfix
 	LabelKindStyle
@@ -96,6 +97,13 @@ var Labels = map[LabelKind]Label{
 		Name:        DoNotMerge + "/kind-missing",
 		Color:       "#FF0000",
 		Description: "标识缺少分类，不要合并",
+	},
+	LabelKindMerge: {
+		Order:       "/kind merge",
+		Type:        LabelTypeKind,
+		Name:        "kind/merge",
+		Color:       "#00F5FF",
+		Description: "分类：不压缩合并",
 	},
 	LabelKindFeature: {
 		Order:       "/kind feature",
