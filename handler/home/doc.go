@@ -25,7 +25,6 @@ import (
 const tag = "home"
 
 func Register(doc *swagger.API) {
-	doc.AddTag(tag, "主要模块")
 	doc.AddEndpoint(
 		endpoint.New(
 			http.MethodGet, "/",
