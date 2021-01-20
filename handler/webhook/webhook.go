@@ -162,6 +162,15 @@ func openEvent(event *gitlab.MergeEvent) error {
 	// 初始化所有需要的label
 	_ = initLabels(event)
 
+	// 添加review check流程
+	if err := global.SCM().UpdateBuildStatus(
+		event.Project.PathWithNamespace,
+		event.ObjectAttributes.LastCommit.ID,
+		scm.BuildStateRunning,
+	); err != nil {
+		return err
+	}
+
 	// 获取仓库review配置
 	config, err := global.SCM().GetReviewConfig(
 		event.Project.PathWithNamespace,
@@ -264,6 +273,16 @@ func updateEvent(event *gitlab.MergeEvent) error {
 			opt.Squash = true
 			opt.SquashCommitMessage = kind + ": " + title
 		}
+		// 完成review check流程
+		if err := global.SCM().UpdateBuildStatus(
+			event.Project.PathWithNamespace,
+			event.ObjectAttributes.LastCommit.ID,
+			scm.BuildStateSuccess,
+		); err != nil {
+			return err
+		}
+
+		// 执行合并
 		return global.SCM().MergePullRequest(
 			event.Project.PathWithNamespace,
 			event.ObjectAttributes.IID,

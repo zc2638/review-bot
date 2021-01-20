@@ -23,11 +23,25 @@ type Config struct {
 }
 
 type Interface interface {
+	ListProjectMembers(pid string) ([]ProjectMember, error)
 	ListLabels(pid string) ([]Label, error)
 	CreateLabel(pid string, label *Label) error
-	UpdatePullRequest(pid string, prID int, data *PullRequest) error
 	CreatePullRequestComment(pid string, prID int, comment string) error
+	UpdatePullRequest(pid string, prID int, data *PullRequest) error
+	UpdateBuildStatus(pid, sha string, state BuildState) error
 	MergePullRequest(pid string, prID int, data *MergePullRequest) error
 	GetReviewConfig(pid, ref string) (*ReviewConfig, error)
-	ListProjectMembers(pid string) ([]ProjectMember, error)
 }
+
+type BuildState = string
+
+const (
+	BuildStatePending  BuildState = "pending"
+	BuildStateCreated  BuildState = "created"
+	BuildStateRunning  BuildState = "running"
+	BuildStateSuccess  BuildState = "success"
+	BuildStateFailed   BuildState = "failed"
+	BuildStateCanceled BuildState = "canceled"
+	BuildStateSkipped  BuildState = "skipped"
+	BuildStateManual   BuildState = "manual"
+)

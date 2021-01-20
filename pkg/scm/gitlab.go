@@ -174,3 +174,15 @@ func (s *gitlabClient) ListProjectMembers(pid string) ([]ProjectMember, error) {
 	}
 	return result, nil
 }
+
+func (s *gitlabClient) UpdateBuildStatus(pid, sha string, state BuildState) error {
+	name := "Review Check"
+	desc := "desc"
+	opt := &gitlab.SetCommitStatusOptions{
+		State:       gitlab.BuildStateValue(state),
+		Name:        &name,
+		Description: &desc,
+	}
+	_, _, err := s.client.Commits.SetCommitStatus(pid, sha, opt)
+	return err
+}
