@@ -322,6 +322,9 @@ func updateEvent(event *gitlab.MergeEvent) error {
 		}
 		removeLabels = currentRemoveLabels
 	}
+	if len(addLabels) == 0 && len(removeLabels) == 0 {
+		return nil
+	}
 	return global.SCM().UpdatePullRequest(
 		event.Project.PathWithNamespace,
 		event.ObjectAttributes.IID,
