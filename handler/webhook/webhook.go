@@ -207,23 +207,28 @@ func openEvent(event *gitlab.MergeEvent) error {
 	}
 	if len(members) > 0 {
 		count := 0
-		reviewData := "等待 "
+		reviewers := make([]string, 0, 2)
 		for _, v := range members {
 			if v.ID == event.ObjectAttributes.AuthorID { // 跳过请求提交者自己进行review
 				continue
 			}
-			reviewData += "@" + v.Username + " "
+			reviewers = append(reviewers, "@"+v.Username)
 			count++
 			if count > 1 { // 限制每次请求两位reviewer
 				break
 			}
 		}
-		reviewData += "处理review请求"
-		return global.SCM().CreatePullRequestComment(
-			event.Project.PathWithNamespace,
-			event.ObjectAttributes.IID,
-			reviewData,
-		)
+		if len(reviewers) > 0 {
+			reviewData := make([]string, 0, 4)
+			reviewData = append(reviewData, "等待")
+			reviewData = append(reviewData, reviewers...)
+			reviewData = append(reviewData, "处理review请求")
+			return global.SCM().CreatePullRequestComment(
+				event.Project.PathWithNamespace,
+				event.ObjectAttributes.IID,
+				strings.Join(reviewData, " "),
+			)
+		}
 	}
 	return nil
 }
