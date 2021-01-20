@@ -118,7 +118,7 @@ var Labels = map[LabelKind]Label{
 		Type:        LabelTypeKind,
 		Name:        "kind/bugfix",
 		Short:       "fix",
-		Color:       "#FF0000",
+		Color:       "#F0AD4E",
 		Description: "分类：bug处理",
 	},
 	LabelKindStyle: {
