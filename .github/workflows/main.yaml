@@ -23,16 +23,18 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v2
 
-      - name: Get Dependencies
+      - name: Install Dependencies
         run: go get -v -t -d ./...
+
+      - name: Install Lint
+        uses: golangci/golangci-lint-action@v2.3.0
+        with:
+          version: latest
 
       - name: Go Test
         run: go test -v ./...
 
-      - name: Lint
-        uses: golangci/golangci-lint-action@v2.3.0
-        with:
-          version: latest
+      - name: Check Lint
         run: golangci-lint run ./...
 
   build:
