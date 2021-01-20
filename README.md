@@ -1,5 +1,7 @@
 # review-bot
 
+![Main CI WorkFlow](https://github.com/zc2638/review-bot/workflows/Main%20CI%20WorkFlow/badge.svg)
+
 gitlab review-bot
 
 ## Quick start
