@@ -91,7 +91,7 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 	// 获取仓库review配置
 	config, err := global.SCM().GetReviewConfig(
 		event.Project.PathWithNamespace,
-		"master",
+		event.Project.DefaultBranch,
 	)
 	if err != nil {
 		return err
