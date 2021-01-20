@@ -209,6 +209,9 @@ func openEvent(event *gitlab.MergeEvent) error {
 		count := 0
 		reviewData := "等待 "
 		for _, v := range members {
+			if v.ID == event.ObjectAttributes.AuthorID { // 跳过请求提交者自己进行review
+				continue
+			}
 			reviewData += "@" + v.Username + " "
 			count++
 			if count > 1 { // 限制每次请求两位reviewer
