@@ -277,6 +277,9 @@ func updateEvent(event *gitlab.MergeEvent) error {
 		opt := &scm.MergePullRequest{
 			MergeWhenPipelineSucceeds: true,
 		}
+		if event.ObjectAttributes.MergeParams != nil {
+			opt.ShouldRemoveSourceBranch = event.ObjectAttributes.MergeParams.ForceRemoveSourceBranch
+		}
 		if kind != "" && title != "" {
 			opt.Squash = true
 			opt.SquashCommitMessage = kind + ": " + title
