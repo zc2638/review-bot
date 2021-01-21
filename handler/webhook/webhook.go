@@ -300,6 +300,16 @@ func updateEvent(event *gitlab.MergeEvent) error {
 			opt,
 		)
 	}
+
+	// 添加review check流程
+	if err := global.SCM().UpdateBuildStatus(
+		event.Project.PathWithNamespace,
+		event.ObjectAttributes.LastCommit.ID,
+		scm.BuildStateRunning,
+	); err != nil {
+		return err
+	}
+
 	var addLabels, removeLabels []string
 	var exists bool
 	for _, v := range scm.Labels {
