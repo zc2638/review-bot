@@ -66,7 +66,7 @@ func HandlerEvent() http.HandlerFunc {
 			ctr.InternalError(w, err)
 			return
 		}
-		ctr.OK(w, webhook)
+		ctr.Success(w)
 	}
 }
 
