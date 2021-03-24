@@ -38,17 +38,35 @@ docker run -d -p 2640:2640 -e BOT_SCM_HOST=https://gitlab.com -e BOT_SCM_TOKEN=<
 
 ## Note
 
-### generate webhook secret
+### Generate Webhook Secret
 
 `GET /secret?namespace=repo&name=test`
 
-### pull request template
+### Pull Request Template
 
 - Download at url `GET /download?type=gitlab`
 - Unzip and move the directory `gitlab` to `.gitlab` in your project
 - Modify configuration file `review.yml`
 
-### setting
+### Setting
 
 - the `review-bot` user must have your project permissions
 - webhook must set sufficient permissions(e.g. `Comments`、`Confidential Comments`、`Pull request events`)
+
+### Custom Config
+the configuration file path is in `.gitlab/review.yml`
+```yaml
+# can use /lgtm
+reviewers:
+  - reviewer1
+  - reviewer2
+
+# can use /approve
+approvers:
+  - approver1
+  - approver2
+pullrequest:
+  # The merge information is mainly based on the title of PR
+  # otherwise it is mainly based on the content of <!-- title --><!-- end title --> in PR description template
+  squash_with_title: true
+```
