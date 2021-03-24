@@ -159,6 +159,15 @@ func getMembers(pid string, names []string) (map[string]scm.ProjectMember, error
 
 // 当pull request创建时，添加标签
 func openEvent(event *gitlab.MergeEvent) error {
+	// 获取仓库review配置
+	config, err := global.SCM().GetReviewConfig(
+		event.Project.PathWithNamespace,
+		event.Project.DefaultBranch, // 获取默认分支的配置
+	)
+	if err != nil {
+		return err
+	}
+
 	// 初始化所有需要的label
 	_ = initLabels(event)
 
@@ -168,15 +177,6 @@ func openEvent(event *gitlab.MergeEvent) error {
 		event.ObjectAttributes.LastCommit.ID,
 		scm.BuildStateRunning,
 	); err != nil {
-		return err
-	}
-
-	// 获取仓库review配置
-	config, err := global.SCM().GetReviewConfig(
-		event.Project.PathWithNamespace,
-		event.Project.DefaultBranch, // 获取默认分支的配置
-	)
-	if err != nil {
 		return err
 	}
 
@@ -234,6 +234,14 @@ func openEvent(event *gitlab.MergeEvent) error {
 }
 
 func updateEvent(event *gitlab.MergeEvent) error {
+	// 获取仓库review配置
+	config, err := global.SCM().GetReviewConfig(
+		event.Project.PathWithNamespace,
+		event.Project.DefaultBranch, // 获取默认分支的配置
+	)
+	if err != nil {
+		return err
+	}
 	// 当label存在do-not-merge时，禁止合并
 	// 当label满足lgtm和approved的时，执行分支合并
 	var lgtmExists, approvedExists bool
@@ -250,16 +258,20 @@ func updateEvent(event *gitlab.MergeEvent) error {
 		}
 	}
 	if lgtmExists && approvedExists {
-		desc := event.ObjectAttributes.Description
 		var title, kind string
-		titleData := strings.Split(desc, "<!-- title -->")
-		if len(titleData) > 1 {
-			titleData = strings.Split(titleData[1], "<!-- end title -->")
-			if len(titleData) > 0 {
-				title = strings.TrimSuffix(titleData[0], "\n")
-				title = strings.TrimSpace(title)
-				title = strings.TrimLeft(title, ">")
-				title = strings.TrimSpace(title)
+		if config.PRConfig.SquashWithTitle {
+			title = event.ObjectAttributes.Title
+		} else {
+			desc := event.ObjectAttributes.Description
+			titleData := strings.Split(desc, "<!-- title -->")
+			if len(titleData) > 1 {
+				titleData = strings.Split(titleData[1], "<!-- end title -->")
+				if len(titleData) > 0 {
+					title = strings.TrimSuffix(titleData[0], "\n")
+					title = strings.TrimSpace(title)
+					title = strings.TrimLeft(title, ">")
+					title = strings.TrimSpace(title)
+				}
 			}
 		}
 		for _, v := range scm.Labels {
