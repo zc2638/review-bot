@@ -440,7 +440,7 @@ func commentMerge(event *gitlab.MergeCommentEvent, config *scm.ReviewConfig) err
 		}
 	}
 	if len(kind) == 0 {
-		return fmt.Errorf("project %s pr %s kind not found",
+		return fmt.Errorf("project %v pr %v kind not found",
 			event.Project.PathWithNamespace,
 			event.MergeRequest.IID,
 		)
