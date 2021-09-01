@@ -15,6 +15,8 @@ limitations under the License.
 */
 package scm
 
+import "time"
+
 const ReviewConfigFileName = "review.yml"
 
 type ReviewConfig struct {
@@ -48,6 +50,27 @@ type ProjectMember struct {
 }
 
 type PullRequest struct {
+	ID                        int        `json:"id"`
+	IID                       int        `json:"iid"`
+	TargetBranch              string     `json:"target_branch"`
+	SourceBranch              string     `json:"source_branch"`
+	ProjectID                 int        `json:"project_id"`
+	Title                     string     `json:"title"`
+	State                     string     `json:"state"`
+	CreatedAt                 *time.Time `json:"created_at"`
+	UpdatedAt                 *time.Time `json:"updated_at"`
+	SourceProjectID           int        `json:"source_project_id"`
+	TargetProjectID           int        `json:"target_project_id"`
+	Labels                    []string   `json:"labels"`
+	Description               string     `json:"description"`
+	WorkInProgress            bool       `json:"work_in_progress"`
+	MergeWhenPipelineSucceeds bool       `json:"merge_when_pipeline_succeeds"`
+	ShouldRemoveSourceBranch  bool       `json:"should_remove_source_branch"`
+	ForceRemoveSourceBranch   bool       `json:"force_remove_source_branch"`
+	Squash                    bool       `json:"squash"`
+}
+
+type UpdatePullRequest struct {
 	Title        string   `json:"title"`
 	Description  string   `json:"description"`
 	TargetBranch string   `json:"target_branch"`

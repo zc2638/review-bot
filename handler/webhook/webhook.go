@@ -16,6 +16,7 @@ limitations under the License.
 package webhook
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -113,6 +114,12 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 				strings.Contains(note, v.Order) {
 				addLabels = append(addLabels, v.Name)
 			}
+			// 匹配force-merge权限
+			if _, ok := util.InStringSlice(config.Approvers, event.User.Username); ok &&
+				k == scm.LabelMerge &&
+				strings.Contains(note, v.Order) {
+				return commentMerge(event, config)
+			}
 		case scm.LabelTypeNormal: // 匹配通用标签
 			if strings.Contains(note, v.Order) {
 				addLabels = append(addLabels, v.Name)
@@ -130,7 +137,7 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 	return global.SCM().UpdatePullRequest(
 		event.Project.PathWithNamespace,
 		event.MergeRequest.IID,
-		&scm.PullRequest{
+		&scm.UpdatePullRequest{
 			AddLabels:    addLabels,
 			RemoveLabels: removeLabels,
 		})
@@ -194,7 +201,7 @@ func openEvent(event *gitlab.MergeEvent) error {
 	if err := global.SCM().UpdatePullRequest(
 		event.Project.PathWithNamespace,
 		event.ObjectAttributes.IID,
-		&scm.PullRequest{
+		&scm.UpdatePullRequest{
 			AddLabels: addLabels,
 		}); err != nil {
 		return err
@@ -359,7 +366,7 @@ func updateEvent(event *gitlab.MergeEvent) error {
 	return global.SCM().UpdatePullRequest(
 		event.Project.PathWithNamespace,
 		event.ObjectAttributes.IID,
-		&scm.PullRequest{
+		&scm.UpdatePullRequest{
 			AddLabels:    addLabels,
 			RemoveLabels: removeLabels,
 		},
@@ -393,4 +400,75 @@ func initLabels(event *gitlab.MergeEvent) error {
 	}
 	cache.Add(event.Project.PathWithNamespace)
 	return nil
+}
+
+func commentMerge(event *gitlab.MergeCommentEvent, config *scm.ReviewConfig) error {
+	// 获取pr详细信息
+	pr, err := global.SCM().GetPullRequest(
+		event.Project.PathWithNamespace,
+		event.MergeRequest.IID,
+	)
+	if err != nil {
+		return err
+	}
+
+	var title, kind string
+	if config.PRConfig.SquashWithTitle {
+		title = pr.Title
+	} else {
+		titleData := strings.Split(pr.Description, "<!-- title -->")
+		if len(titleData) > 1 {
+			titleData = strings.Split(titleData[1], "<!-- end title -->")
+			if len(titleData) > 0 {
+				title = strings.TrimSuffix(titleData[0], "\n")
+				title = strings.TrimSpace(title)
+				title = strings.TrimLeft(title, ">")
+				title = strings.TrimSpace(title)
+			}
+		}
+	}
+
+	for _, v := range scm.Labels {
+		if v.Type != scm.LabelTypeKind {
+			continue
+		}
+		for _, vv := range pr.Labels {
+			if vv == v.Name {
+				kind = v.Short
+				break
+			}
+		}
+	}
+	if len(kind) == 0 {
+		return fmt.Errorf("project %s pr %s kind not found",
+			event.Project.PathWithNamespace,
+			event.MergeRequest.IID,
+		)
+	}
+
+	opt := &scm.MergePullRequest{
+		MergeWhenPipelineSucceeds: true,
+	}
+	if event.MergeRequest.MergeParams != nil {
+		opt.ShouldRemoveSourceBranch = pr.ForceRemoveSourceBranch
+	}
+	if kind != "" && title != "" {
+		opt.Squash = true
+		opt.SquashCommitMessage = kind + ": " + title
+	}
+	// 完成review check流程
+	if err := global.SCM().UpdateBuildStatus(
+		event.Project.PathWithNamespace,
+		event.MergeRequest.LastCommit.ID,
+		scm.BuildStateSuccess,
+	); err != nil {
+		return err
+	}
+
+	// 执行合并
+	return global.SCM().MergePullRequest(
+		event.Project.PathWithNamespace,
+		event.MergeRequest.IID,
+		opt,
+	)
 }

@@ -21,6 +21,7 @@ const (
 	LabelNone LabelKind = iota
 	LabelLGTM
 	LabelApprove
+	LabelMerge
 	LabelWIP
 	LabelWIPCancel
 	LabelHold
@@ -62,6 +63,13 @@ var Labels = map[LabelKind]Label{
 		Name:        "approved",
 		Color:       "#5CB85C",
 		Description: "标识审批通过",
+	},
+	LabelMerge: {
+		Order:       "/force-merge",
+		Type:        LabelTypeAdmin,
+		Name:        "force-merge",
+		Color:       "#5CB85C",
+		Description: "标识强制自动合并",
 	},
 	LabelWIP: {
 		Order:       "/wip",

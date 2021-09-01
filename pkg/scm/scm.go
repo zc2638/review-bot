@@ -27,7 +27,8 @@ type Interface interface {
 	ListLabels(pid string) ([]Label, error)
 	CreateLabel(pid string, label *Label) error
 	CreatePullRequestComment(pid string, prID int, comment string) error
-	UpdatePullRequest(pid string, prID int, data *PullRequest) error
+	GetPullRequest(pid string, prID int) (*PullRequest, error)
+	UpdatePullRequest(pid string, prID int, data *UpdatePullRequest) error
 	UpdateBuildStatus(pid, sha string, state BuildState) error
 	MergePullRequest(pid string, prID int, data *MergePullRequest) error
 	GetReviewConfig(pid, ref string) (*ReviewConfig, error)

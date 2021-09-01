@@ -81,7 +81,35 @@ func (s *gitlabClient) CreateLabel(pid string, label *Label) error {
 	return err
 }
 
-func (s *gitlabClient) UpdatePullRequest(pid string, prID int, data *PullRequest) error {
+func (s *gitlabClient) GetPullRequest(pid string, prID int) (*PullRequest, error) {
+	opt := &gitlab.GetMergeRequestsOptions{}
+	mr, _, err := s.client.MergeRequests.GetMergeRequest(pid, prID, opt)
+	if err != nil {
+		return nil, err
+	}
+	return &PullRequest{
+		ID:                        mr.ID,
+		IID:                       mr.IID,
+		TargetBranch:              mr.TargetBranch,
+		SourceBranch:              mr.SourceBranch,
+		ProjectID:                 mr.ProjectID,
+		Title:                     mr.Title,
+		State:                     mr.State,
+		CreatedAt:                 mr.CreatedAt,
+		UpdatedAt:                 mr.UpdatedAt,
+		SourceProjectID:           mr.SourceProjectID,
+		TargetProjectID:           mr.TargetProjectID,
+		Labels:                    mr.Labels,
+		Description:               mr.Description,
+		WorkInProgress:            mr.WorkInProgress,
+		MergeWhenPipelineSucceeds: mr.MergeWhenPipelineSucceeds,
+		ShouldRemoveSourceBranch:  mr.ShouldRemoveSourceBranch,
+		ForceRemoveSourceBranch:   mr.ForceRemoveSourceBranch,
+		Squash:                    mr.Squash,
+	}, nil
+}
+
+func (s *gitlabClient) UpdatePullRequest(pid string, prID int, data *UpdatePullRequest) error {
 	opt := &gitlab.UpdateMergeRequestOptions{
 		AssigneeIDs:  data.AssigneeIDs,
 		Labels:       data.Labels,
