@@ -22,6 +22,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/zc2638/review-bot/pkg/util"
 
 	"github.com/zc2638/review-bot/pkg/scm"
@@ -118,6 +120,8 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 			if _, ok := util.InStringSlice(config.Approvers, event.User.Username); ok &&
 				k == scm.LabelMerge &&
 				strings.Contains(note, v.Order) {
+				logrus.Infof("Run force merge by %s on PR(%s) in Repo(%s)",
+					event.User.Username, event.MergeRequest.IID, event.Project.PathWithNamespace)
 				return commentMerge(event, config)
 			}
 		case scm.LabelTypeNormal: // 匹配通用标签
