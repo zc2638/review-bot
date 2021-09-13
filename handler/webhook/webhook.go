@@ -120,7 +120,7 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 			if _, ok := util.InStringSlice(config.Approvers, event.User.Username); ok &&
 				k == scm.LabelMerge &&
 				strings.Contains(note, v.Order) {
-				logrus.Infof("Run force merge by %s on PR(%s) in Repo(%s)",
+				logrus.Infof("Run force merge by %s on PR(%v) in Repo(%s)",
 					event.User.Username, event.MergeRequest.IID, event.Project.PathWithNamespace)
 				return commentMerge(event, config)
 			}

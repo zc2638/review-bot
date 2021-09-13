@@ -26,8 +26,8 @@ jobs:
       - name: Install Dependencies
         run: go get -v -t -d ./...
 
-      - name: Go Test
-        run: go test -v ./...
+#      - name: Go Test
+#        run: go test -v ./...
 
       - name: Install Lint And Check
         uses: golangci/golangci-lint-action@v2.3.0
