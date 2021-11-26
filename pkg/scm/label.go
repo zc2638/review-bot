@@ -15,166 +15,229 @@ limitations under the License.
 */
 package scm
 
-type LabelKind int
-
-const (
-	LabelNone LabelKind = iota
-	LabelLGTM
-	LabelApprove
-	LabelMerge
-	LabelWIP
-	LabelWIPCancel
-	LabelHold
-	LabelHoldCancel
-	LabelKindMissing
-	LabelKindMerge
-	LabelKindFeature
-	LabelKindBugfix
-	LabelKindStyle
-	LabelKindDocs
-	LabelKindRefactor
-	LabelKindPerf
-	LabelKindTest
-	LabelKindCI
-)
-
-type LabelType int
-
-const (
-	LabelTypeKind LabelType = iota
-	LabelTypeAdmin
-	LabelTypeNormal
-	LabelTypeRemove
-)
+import "strings"
 
 const DoNotMerge = "do-not-merge"
 
-var Labels = map[LabelKind]Label{
-	LabelLGTM: {
-		Order:       "/lgtm",
-		Type:        LabelTypeAdmin,
-		Name:        "lgtm",
-		Color:       "#5CB85C",
-		Description: "标识同意合并",
-	},
-	LabelApprove: {
-		Order:       "/approve",
-		Type:        LabelTypeAdmin,
-		Name:        "approved",
-		Color:       "#5CB85C",
-		Description: "标识审批通过",
-	},
-	LabelMerge: {
-		Order:       "/force-merge",
-		Type:        LabelTypeAdmin,
-		Name:        "force-merge",
-		Color:       "#5CB85C",
-		Description: "标识强制自动合并",
-	},
-	LabelWIP: {
-		Order:       "/wip",
-		Type:        LabelTypeNormal,
-		Name:        DoNotMerge + "/work-in-progress",
-		Color:       "#FF0000",
-		Description: "标识开发中，不要合并",
-	},
-	LabelHold: {
-		Order:       "/hold",
-		Type:        LabelTypeNormal,
-		Name:        DoNotMerge + "/hold",
-		Color:       "#FF0000",
-		Description: "标识不要合并",
-	},
-	LabelWIPCancel: {
-		Order:       "/wip cancel",
-		Type:        LabelTypeRemove,
-		Name:        DoNotMerge + "/work-in-progress",
-		Color:       "#FF0000",
-		Description: "标识取消开发中状态",
-	},
-	LabelHoldCancel: {
-		Order:       "/hold cancel",
-		Type:        LabelTypeRemove,
-		Name:        DoNotMerge + "/hold",
-		Color:       "#FF0000",
-		Description: "标识取消hold状态",
-	},
-	LabelKindMissing: {
+type Set int
+
+const (
+	AutoSet Set = iota
+	AdminSet
+	AddSet
+	RemoveSet
+	CustomSet
+)
+
+func getLabelSet(s Set) map[string]Label {
+	switch s {
+	case AutoSet:
+		return autoSet
+	case AdminSet:
+		return adminSet
+	case AddSet:
+		return addSet
+	case RemoveSet:
+		return removeSet
+	case CustomSet:
+		return customSet
+	default:
+		return customSet
+	}
+}
+
+func (s Set) Labels() []Label {
+	set := getLabelSet(s)
+	labels := make([]Label, 0, len(set))
+	for _, v := range set {
+		labels = append(labels, v)
+	}
+	return labels
+}
+
+func (s Set) Label(name string) *Label {
+	set := getLabelSet(s)
+	for _, v := range set {
+		if name == v.Name {
+			return &v
+		}
+	}
+	return nil
+}
+
+func (s Set) LabelByKey(key string) *Label {
+	set := getLabelSet(s)
+	for k, v := range set {
+		if key == k {
+			return &v
+		}
+	}
+	return nil
+}
+
+func (s Set) FuzzyLabels(content string) []Label {
+	set := getLabelSet(s)
+	var labels []Label
+	for _, v := range set {
+		if strings.Contains(content, v.Order) {
+			labels = append(labels, v)
+		}
+	}
+	return labels
+}
+
+func (s Set) FuzzyLabelWithKey(key, content string) *Label {
+	set := getLabelSet(s)
+	for k, v := range set {
+		if k == key && strings.Contains(content, v.Order) {
+			return &v
+		}
+	}
+	return nil
+}
+
+func (s Set) FuzzyLabelsWithPrefix(prefix, content string) []Label {
+	set := getLabelSet(s)
+	var labels []Label
+	for _, v := range set {
+		order := strings.TrimPrefix(v.Order, "/")
+		order = "/" + prefix + "-" + order
+		if strings.Contains(content, order) {
+			labels = append(labels, v)
+		}
+	}
+	return labels
+}
+
+var autoSet = map[string]Label{
+	"KIND": {
 		Order:       "/kind missing",
-		Type:        LabelTypeKind,
 		Name:        DoNotMerge + "/kind-missing",
 		Color:       "#FF0000",
 		Description: "标识缺少分类，不要合并",
 	},
-	LabelKindMerge: {
+}
+
+var adminSet = map[string]Label{
+	"LGTM": {
+		Order:       "/lgtm",
+		Name:        "lgtm",
+		Color:       "#5CB85C",
+		Description: "标识同意合并",
+	},
+	"APPROVE": {
+		Order:       "/approve",
+		Name:        "approved",
+		Color:       "#5CB85C",
+		Description: "标识审批通过",
+	},
+	"FORCE-MERGE": {
+		Order:       "/force-merge",
+		Name:        "force-merge",
+		Color:       "#5CB85C",
+		Description: "标识强制自动合并",
+	},
+}
+
+var addSet = map[string]Label{
+	"WIP": {
+		Order:       "/wip",
+		Name:        DoNotMerge + "/work-in-progress",
+		Color:       "#FF0000",
+		Description: "标识开发中，不要合并",
+	},
+	"HOLD": {
+		Order:       "/hold",
+		Name:        DoNotMerge + "/hold",
+		Color:       "#FF0000",
+		Description: "标识不要合并",
+	},
+}
+
+var removeSet = map[string]Label{
+	"WIP": {
+		Order:       "/wip cancel",
+		Name:        DoNotMerge + "/work-in-progress",
+		Color:       "#FF0000",
+		Description: "标识取消开发中状态",
+	},
+	"HOLD": {
+		Order:       "/hold cancel",
+		Name:        DoNotMerge + "/hold",
+		Color:       "#FF0000",
+		Description: "标识取消hold状态",
+	},
+}
+
+var customSet = map[string]Label{
+	"MERGE": {
 		Order:       "/kind merge",
-		Type:        LabelTypeKind,
 		Name:        "kind/merge",
+		Short:       "merge",
 		Color:       "#00F5FF",
 		Description: "分类：不压缩合并",
 	},
-	LabelKindFeature: {
+	"FEATURE": {
 		Order:       "/kind feature",
-		Type:        LabelTypeKind,
 		Name:        "kind/feature",
 		Short:       "feat",
 		Color:       "#428BCA",
 		Description: "分类：新功能",
 	},
-	LabelKindBugfix: {
+	"BUGFIX": {
 		Order:       "/kind bugfix",
-		Type:        LabelTypeKind,
 		Name:        "kind/bugfix",
 		Short:       "fix",
 		Color:       "#F0AD4E",
 		Description: "分类：bug处理",
 	},
-	LabelKindStyle: {
+	"STYLE": {
 		Order:       "/kind style",
-		Type:        LabelTypeKind,
 		Name:        "kind/style",
 		Short:       "style",
 		Color:       "#43CD80",
 		Description: "分类：样式",
 	},
-	LabelKindDocs: {
+	"DOCS": {
 		Order:       "/kind docs",
-		Type:        LabelTypeKind,
 		Name:        "kind/docs",
 		Short:       "docs",
 		Color:       "#CAFF70",
 		Description: "分类：文档",
 	},
-	LabelKindRefactor: {
+	"REFACTOR": {
 		Order:       "/kind refactor",
-		Type:        LabelTypeKind,
 		Name:        "kind/refactor",
 		Short:       "refactor",
 		Color:       "#FF1493",
 		Description: "分类：重构",
 	},
-	LabelKindPerf: {
+	"PERF": {
 		Order:       "/kind perf",
-		Type:        LabelTypeKind,
 		Name:        "kind/perf",
 		Short:       "perf",
 		Color:       "#A020F0",
 		Description: "分类：性能",
 	},
-	LabelKindTest: {
+	"TEST": {
 		Order:       "/kind test",
-		Type:        LabelTypeKind,
 		Name:        "kind/test",
 		Short:       "test",
 		Color:       "#8B0000",
 		Description: "分类：测试",
 	},
-	LabelKindCI: {
+	"CI": {
 		Order:       "/kind ci",
-		Type:        LabelTypeKind,
 		Name:        "kind/ci",
 		Short:       "ci",
 		Color:       "#9AC0CD",
 		Description: "分类：CICD",
+	},
+	"CLEANUP": {
+		Order:       "/kind cleanup",
+		Name:        "kind/cleanup",
+		Short:       "cleanup",
+		Color:       "#33a3dc",
+		Description: "分类：整理",
 	},
 }

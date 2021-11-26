@@ -16,7 +16,6 @@ limitations under the License.
 package webhook
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -101,38 +100,47 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 	}
 
 	var addLabels, removeLabels []string
-	for k, v := range scm.Labels {
-		switch v.Type {
-		case scm.LabelTypeAdmin:
-			// 匹配review权限
-			if _, ok := util.InStringSlice(config.Reviewers, event.User.Username); ok &&
-				k == scm.LabelLGTM &&
-				strings.Contains(note, v.Order) {
-				addLabels = append(addLabels, v.Name)
-			}
-			// 匹配approve权限
-			if _, ok := util.InStringSlice(config.Approvers, event.User.Username); ok &&
-				k == scm.LabelApprove &&
-				strings.Contains(note, v.Order) {
-				addLabels = append(addLabels, v.Name)
-			}
-			// 匹配force-merge权限
-			if _, ok := util.InStringSlice(config.Approvers, event.User.Username); ok &&
-				k == scm.LabelMerge &&
-				strings.Contains(note, v.Order) {
-				logrus.Infof("Run force merge by %s on PR(%v) in Repo(%s)",
-					event.User.Username, event.MergeRequest.IID, event.Project.PathWithNamespace)
-				return commentMerge(event, config)
-			}
-		case scm.LabelTypeNormal: // 匹配通用标签
-			if strings.Contains(note, v.Order) {
-				addLabels = append(addLabels, v.Name)
-			}
-		case scm.LabelTypeRemove: // 匹配需要移除的标签
-			if strings.Contains(note, v.Order) {
-				removeLabels = append(removeLabels, v.Name)
-			}
+
+	// 匹配admin标签
+	if _, ok := util.InStringSlice(config.Reviewers, event.User.Username); ok {
+		label := scm.AdminSet.FuzzyLabelWithKey("LGTM", note)
+		if label != nil {
+			addLabels = append(addLabels, label.Name)
 		}
+	}
+	if _, ok := util.InStringSlice(config.Approvers, event.User.Username); ok {
+		label := scm.AdminSet.FuzzyLabelWithKey("APPROVE", note)
+		if label != nil {
+			addLabels = append(addLabels, label.Name)
+		}
+		label = scm.AdminSet.FuzzyLabelWithKey("FORCE-MERGE", note)
+		if label != nil {
+			logrus.Infof("Run force merge by %s on PR(%v) in Repo(%s)",
+				event.User.Username, event.MergeRequest.IID, event.Project.PathWithNamespace)
+			return commentMerge(event, config)
+		}
+	}
+
+	// 匹配common标签
+	labels := scm.AddSet.FuzzyLabels(note)
+	for _, v := range labels {
+		addLabels = append(addLabels, v.Name)
+	}
+	labels = scm.RemoveSet.FuzzyLabels(note)
+	for _, v := range labels {
+		removeLabels = append(removeLabels, v.Name)
+	}
+
+	// 匹配custom标签
+	labels = scm.CustomSet.FuzzyLabels(note)
+	for _, v := range labels {
+		addLabels = append(addLabels, v.Name)
+	}
+
+	// 匹配移除custom标签
+	labels = scm.CustomSet.FuzzyLabelsWithPrefix("remove", note)
+	for _, v := range labels {
+		removeLabels = append(removeLabels, v.Name)
 	}
 
 	if len(addLabels) == 0 && len(removeLabels) == 0 {
@@ -192,16 +200,19 @@ func openEvent(event *gitlab.MergeEvent) error {
 	}
 
 	var addLabels []string
-	for _, v := range scm.Labels {
-		if strings.Contains(event.ObjectAttributes.Description, v.Order) {
-			addLabels = append(addLabels, v.Name)
-			break
-		}
+
+	labels := scm.CustomSet.FuzzyLabels(event.ObjectAttributes.Description)
+	for _, v := range labels {
+		addLabels = append(addLabels, v.Name)
 	}
 	if len(addLabels) == 0 {
-		addLabels = []string{scm.Labels[scm.LabelKindMissing].Name}
+		label := scm.AutoSet.LabelByKey("KIND")
+		if label != nil {
+			addLabels = append(addLabels, label.Name)
+		}
 	}
 
+	// 更新labels
 	if err := global.SCM().UpdatePullRequest(
 		event.Project.PathWithNamespace,
 		event.ObjectAttributes.IID,
@@ -253,128 +264,80 @@ func updateEvent(event *gitlab.MergeEvent) error {
 	if err != nil {
 		return err
 	}
+
 	// 当label存在do-not-merge时，禁止合并
-	// 当label满足lgtm和approved的时，执行分支合并
 	var lgtmExists, approvedExists bool
 	for _, v := range event.Labels {
 		if strings.Contains(v.Name, scm.DoNotMerge) {
 			approvedExists = false
 			break
 		}
-		switch v.Name {
-		case scm.Labels[scm.LabelLGTM].Name:
+		label := scm.AdminSet.LabelByKey("LGTM")
+		if label != nil && v.Name == label.Name {
 			lgtmExists = true
-		case scm.Labels[scm.LabelApprove].Name:
+		}
+		label = scm.AdminSet.LabelByKey("APPROVE")
+		if label != nil && v.Name == label.Name {
 			approvedExists = true
 		}
 	}
-	if lgtmExists && approvedExists {
-		var title, kind string
-		if config.PRConfig.SquashWithTitle {
-			title = event.ObjectAttributes.Title
-		} else {
-			desc := event.ObjectAttributes.Description
-			titleData := strings.Split(desc, "<!-- title -->")
-			if len(titleData) > 1 {
-				titleData = strings.Split(titleData[1], "<!-- end title -->")
-				if len(titleData) > 0 {
-					title = strings.TrimSuffix(titleData[0], "\n")
-					title = strings.TrimSpace(title)
-					title = strings.TrimLeft(title, ">")
-					title = strings.TrimSpace(title)
-				}
-			}
-		}
-		for _, v := range scm.Labels {
-			if v.Type != scm.LabelTypeKind {
-				continue
-			}
-			for _, vv := range event.Labels {
-				if vv.Name == v.Name {
-					kind = v.Short
-					break
-				}
-			}
-		}
-
-		opt := &scm.MergePullRequest{
-			MergeWhenPipelineSucceeds: true,
-		}
-		if event.ObjectAttributes.MergeParams != nil {
-			opt.ShouldRemoveSourceBranch = event.ObjectAttributes.MergeParams.ForceRemoveSourceBranch
-		}
-		if kind != "" && title != "" {
-			opt.Squash = true
-			opt.SquashCommitMessage = kind + ": " + title
-		}
-		// 完成review check流程
-		if err := global.SCM().UpdateBuildStatus(
-			event.Project.PathWithNamespace,
-			event.ObjectAttributes.LastCommit.ID,
-			scm.BuildStateSuccess,
-		); err != nil {
-			return err
-		}
-
-		// 执行合并
-		return global.SCM().MergePullRequest(
-			event.Project.PathWithNamespace,
-			event.ObjectAttributes.IID,
-			opt,
-		)
-	}
 
 	// 尝试添加review check流程，如果存在报错则忽略
-	_ = global.SCM().UpdateBuildStatus(
-		event.Project.PathWithNamespace,
-		event.ObjectAttributes.LastCommit.ID,
-		scm.BuildStateRunning,
-	)
-
-	var addLabels, removeLabels []string
-	var exists bool
-	for _, v := range scm.Labels {
-		if v.Type != scm.LabelTypeKind {
-			continue
-		}
-		if strings.Contains(event.ObjectAttributes.Description, v.Order) {
-			for _, label := range event.Labels {
-				if label.Name == v.Name {
-					exists = true
-					break
-				}
-			}
-			if exists {
-				break
-			}
-			addLabels = append(addLabels, v.Name)
-		} else {
-			removeLabels = append(removeLabels, v.Name)
-		}
-	}
-	if len(addLabels) == 0 && !exists {
-		missingName := scm.Labels[scm.LabelKindMissing].Name
-		addLabels = []string{missingName}
-		var currentRemoveLabels []string
-		for _, v := range removeLabels {
-			if v == missingName {
-				continue
-			}
-			currentRemoveLabels = append(currentRemoveLabels, v)
-		}
-		removeLabels = currentRemoveLabels
-	}
-	if len(addLabels) == 0 && len(removeLabels) == 0 {
+	if !lgtmExists || !approvedExists {
+		_ = global.SCM().UpdateBuildStatus(
+			event.Project.PathWithNamespace,
+			event.ObjectAttributes.LastCommit.ID,
+			scm.BuildStateRunning,
+		)
 		return nil
 	}
-	return global.SCM().UpdatePullRequest(
+
+	// 当label满足lgtm和approved的时，执行分支合并
+	var title, prefix string
+	if config.PRConfig.SquashWithTitle {
+		title = event.ObjectAttributes.Title
+	} else {
+		desc := event.ObjectAttributes.Description
+		titleData := strings.Split(desc, "<!-- title -->")
+		if len(titleData) > 1 {
+			titleData = strings.Split(titleData[1], "<!-- end title -->")
+			if len(titleData) > 0 {
+				title = strings.TrimSuffix(titleData[0], "\n")
+				title = strings.TrimSpace(title)
+				title = strings.TrimLeft(title, ">")
+				title = strings.TrimSpace(title)
+			}
+		}
+	}
+
+	for _, v := range event.Labels {
+		label := scm.CustomSet.Label(v.Name)
+		if label != nil && strings.TrimSpace(label.Short) != "" {
+			prefix = label.Short + ":"
+			break
+		}
+	}
+
+	opt := &scm.MergePullRequest{MergeWhenPipelineSucceeds: true}
+	if event.ObjectAttributes.MergeParams != nil {
+		opt.ShouldRemoveSourceBranch = event.ObjectAttributes.MergeParams.ForceRemoveSourceBranch
+	}
+	if title != "" {
+		opt.Squash = true
+		opt.SquashCommitMessage = prefix + title
+	}
+
+	// 完成review check流程
+	if err := global.SCM().UpdateBuildStatus(
 		event.Project.PathWithNamespace,
-		event.ObjectAttributes.IID,
-		&scm.UpdatePullRequest{
-			AddLabels:    addLabels,
-			RemoveLabels: removeLabels,
-		},
-	)
+		event.ObjectAttributes.LastCommit.ID,
+		scm.BuildStateSuccess,
+	); err != nil {
+		return err
+	}
+
+	// 执行合并
+	return global.SCM().MergePullRequest(event.Project.PathWithNamespace, event.ObjectAttributes.IID, opt)
 }
 
 // 初始化所有label
@@ -383,14 +346,19 @@ func initLabels(event *gitlab.MergeEvent) error {
 	if exists := cache.IsExist(event.Project.PathWithNamespace); exists {
 		return nil
 	}
-	labels, err := global.SCM().ListLabels(
-		event.Project.PathWithNamespace,
-	)
+
+	labels, err := global.SCM().ListLabels(event.Project.PathWithNamespace)
 	if err != nil {
 		return err
 	}
-	for _, v := range scm.Labels {
-		exists := false
+
+	var allLabels []scm.Label
+	allLabels = append(allLabels, scm.AutoSet.Labels()...)
+	allLabels = append(allLabels, scm.AdminSet.Labels()...)
+	allLabels = append(allLabels, scm.AddSet.Labels()...)
+	allLabels = append(allLabels, scm.CustomSet.Labels()...)
+	for _, v := range allLabels {
+		var exists bool
 		for _, label := range labels {
 			if v.Name == label.Name {
 				exists = true
@@ -402,10 +370,12 @@ func initLabels(event *gitlab.MergeEvent) error {
 			_ = global.SCM().CreateLabel(event.Project.PathWithNamespace, &v)
 		}
 	}
+
 	cache.Add(event.Project.PathWithNamespace)
 	return nil
 }
 
+// 通过评论合并PR
 func commentMerge(event *gitlab.MergeCommentEvent, config *scm.ReviewConfig) error {
 	// 获取pr详细信息
 	pr, err := global.SCM().GetPullRequest(
@@ -416,7 +386,7 @@ func commentMerge(event *gitlab.MergeCommentEvent, config *scm.ReviewConfig) err
 		return err
 	}
 
-	var title, kind string
+	var title, prefix string
 	if config.PRConfig.SquashWithTitle {
 		title = pr.Title
 	} else {
@@ -432,22 +402,12 @@ func commentMerge(event *gitlab.MergeCommentEvent, config *scm.ReviewConfig) err
 		}
 	}
 
-	for _, v := range scm.Labels {
-		if v.Type != scm.LabelTypeKind {
-			continue
+	for _, v := range pr.Labels {
+		label := scm.CustomSet.Label(v)
+		if label != nil && strings.TrimSpace(label.Short) != "" {
+			prefix = label.Short + ":"
+			break
 		}
-		for _, vv := range pr.Labels {
-			if vv == v.Name {
-				kind = v.Short
-				break
-			}
-		}
-	}
-	if len(kind) == 0 {
-		return fmt.Errorf("project %v pr %v kind not found",
-			event.Project.PathWithNamespace,
-			event.MergeRequest.IID,
-		)
 	}
 
 	opt := &scm.MergePullRequest{
@@ -456,9 +416,9 @@ func commentMerge(event *gitlab.MergeCommentEvent, config *scm.ReviewConfig) err
 	if event.MergeRequest.MergeParams != nil {
 		opt.ShouldRemoveSourceBranch = pr.ForceRemoveSourceBranch
 	}
-	if kind != "" && title != "" {
+	if title != "" {
 		opt.Squash = true
-		opt.SquashCommitMessage = kind + ": " + title
+		opt.SquashCommitMessage = prefix + title
 	}
 	// 完成review check流程
 	if err := global.SCM().UpdateBuildStatus(

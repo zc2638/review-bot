@@ -32,13 +32,12 @@ type PullRequestConfig struct {
 }
 
 type Label struct {
-	Order       string    `json:"order"`
-	Type        LabelType `json:"type"`
-	Name        string    `json:"name"`
-	Short       string    `json:"short"`
-	Color       string    `json:"color"`
-	TextColor   string    `json:"text_color"`
-	Description string    `json:"description"`
+	Order       string `json:"order"`
+	Name        string `json:"name"`
+	Short       string `json:"short"`
+	Color       string `json:"color"`
+	TextColor   string `json:"text_color"`
+	Description string `json:"description"`
 }
 
 type ProjectMember struct {
