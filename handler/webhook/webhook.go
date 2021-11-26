@@ -136,11 +136,33 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 	for _, v := range labels {
 		addLabels = append(addLabels, v.Name)
 	}
-
 	// 匹配移除custom标签
 	labels = scm.CustomSet.FuzzyLabelsWithPrefix("remove", note)
 	for _, v := range labels {
 		removeLabels = append(removeLabels, v.Name)
+	}
+
+	// 匹配配置内的custom标签
+	// 匹配移除配置内的custom标签
+	for _, v := range config.CustomLabels {
+		// 创建不存在的标签，添加custom标签到缓存
+		if !scm.RepoCached().IsExist(event.Project.PathWithNamespace, v.Name) {
+			// label创建失败暂不处理
+			if err := global.SCM().CreateLabel(event.Project.PathWithNamespace, &v); err != nil {
+				logrus.Warningf("Create label failed: %s", err)
+			} else {
+				scm.RepoCached().Add(event.Project.PathWithNamespace, v.Name)
+			}
+		}
+
+		removeOrder := strings.TrimPrefix(v.Order, "/")
+		removeOrder = "/remove-" + removeOrder
+		if strings.Contains(note, v.Order) {
+			addLabels = append(addLabels, v.Name)
+		}
+		if strings.Contains(note, removeOrder) {
+			removeLabels = append(removeLabels, v.Name)
+		}
 	}
 
 	if len(addLabels) == 0 && len(removeLabels) == 0 {

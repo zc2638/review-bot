@@ -20,10 +20,10 @@ import "time"
 const ReviewConfigFileName = "review.yml"
 
 type ReviewConfig struct {
-	Reviewers []string          `json:"reviewers"`
-	Approvers []string          `json:"approvers"`
-	Kinds     []Label           `json:"kinds"`
-	PRConfig  PullRequestConfig `json:"pullrequest"`
+	Reviewers    []string          `json:"reviewers"`
+	Approvers    []string          `json:"approvers"`
+	CustomLabels []Label           `json:"custom_labels"`
+	PRConfig     PullRequestConfig `json:"pullrequest"`
 }
 
 type PullRequestConfig struct {

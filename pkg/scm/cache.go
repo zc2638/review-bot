@@ -36,6 +36,43 @@ func (c Cache) IsExist(key string) bool {
 	return ok
 }
 
+var repoCache = RepoCache{}
+
+func RepoCached() RepoCache {
+	return repoCache
+}
+
+type RepoCache map[string]Cache
+
+func (c RepoCache) List(key string) []string {
+	cache, ok := c[key]
+	if !ok {
+		return nil
+	}
+
+	result := make([]string, 0, len(cache))
+	for k := range cache {
+		result = append(result, k)
+	}
+	return result
+}
+
+func (c RepoCache) IsExist(key, value string) bool {
+	if cache, ok := c[key]; ok {
+		return cache.IsExist(value)
+	}
+	return false
+}
+
+func (c RepoCache) Add(key string, values ...string) {
+	if _, ok := c[key]; !ok {
+		c[key] = make(Cache)
+	}
+	for _, v := range values {
+		c[key].Add(v)
+	}
+}
+
 var userCache = UserCache{}
 
 func UserCached() UserCache {
