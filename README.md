@@ -38,6 +38,9 @@ docker run -d -p 2640:2640 -e BOT_SCM_HOST=https://gitlab.com -e BOT_SCM_TOKEN=<
 
 ## Note
 
+### Api Document
+`GET /swagger-ui`
+
 ### Generate Webhook Secret
 
 `GET /secret?namespace=repo&name=test`
