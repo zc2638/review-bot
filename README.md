@@ -72,4 +72,20 @@ pullrequest:
   # The merge information is mainly based on the title of PR
   # otherwise it is mainly based on the content of <!-- title --><!-- end title --> in PR description template
   squash_with_title: true
+custom_labels:
+    # Operation instructions in comments
+  - order: /kind cleanup
+    # Label name associated with the instruction
+    name: kind/cleanup
+    # Automatically add prefix for merged submission information
+    short: cleanup
+    # Label background color
+    color: #33a3dc
+    # Label description
+    description: "kind: cleanup code"
+
+  - order: /area scheduler
+    name: area/scheduler
+    color: #96582a
+    description: "area: scheduler service code area"
 ```
