@@ -18,15 +18,13 @@ package handler
 import (
 	"net/http"
 
-	"github.com/zc2638/review-bot/handler/webhook"
-
-	"github.com/zc2638/review-bot/handler/home"
-
-	"github.com/go-chi/cors"
-	"github.com/zc2638/swag"
-
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
+
+	"github.com/zc2638/review-bot/handler/home"
+	"github.com/zc2638/review-bot/handler/webhook"
+	"github.com/zc2638/swag"
 )
 
 func New() http.Handler {
@@ -43,11 +41,8 @@ func New() http.Handler {
 	apiDoc.AddEndpointFunc(
 		home.Register,
 	)
-
-	for path, endpoints := range apiDoc.Paths {
-		mux.Handle(path, endpoints)
-	}
-	mux.Handle("/swagger", apiDoc.Handler(false))
 	mux.Post("/webhook", webhook.HandlerEvent())
+
+	apiDoc.RegisterMuxWithData(mux, false)
 	return mux
 }
