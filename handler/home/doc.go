@@ -49,5 +49,12 @@ func Register(doc *swagger.API) {
 			endpoint.ResponseSuccess(),
 			endpoint.NoSecurity(),
 		),
+		endpoint.New(
+			http.MethodGet, "/command-help",
+			endpoint.Handler(commandHelp()),
+			endpoint.Summary("Command Help"),
+			endpoint.ResponseSuccess(),
+			endpoint.NoSecurity(),
+		),
 	)
 }

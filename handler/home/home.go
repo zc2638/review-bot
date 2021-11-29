@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zc2638/review-bot/pkg/scm"
+
 	"github.com/pkg/errors"
 
 	"github.com/zc2638/review-bot/global"
@@ -139,4 +141,110 @@ func buildZIP(static, dir string) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func commandHelp() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var list string
+		for _, v := range scm.AdminSet.Labels() {
+			list += `<tr align="center">
+                <td>` + v.Order + `</td>
+                <td><span class="label-item" style="background: ` + v.Color + `;">` + v.Name + `</span></td>
+                <td>` + v.Description + `</td>
+            </tr>` + "\n"
+		}
+		for _, v := range scm.AddSet.Labels() {
+			list += `<tr align="center">
+                <td>` + v.Order + `</td>
+                <td><span class="label-item" style="background: ` + v.Color + `;">` + v.Name + `</span></td>
+                <td>` + v.Description + `</td>
+            </tr>` + "\n"
+		}
+		for _, v := range scm.RemoveSet.Labels() {
+			removeOrder := strings.TrimPrefix(v.Order, "/")
+			removeOrder = "/remove-" + removeOrder
+
+			list += `<tr align="center">
+                <td>` + v.Order + `</td>
+                <td><span class="label-item" style="background: ` + v.Color + `;">` + v.Name + `</span></td>
+                <td>` + v.Description + `</td>
+            </tr>` + "\n"
+		}
+		for _, v := range scm.CustomSet.Labels() {
+			order := strings.TrimPrefix(v.Order, "/")
+			order = "/【remove-】" + order
+
+			list += `<tr align="center">
+                <td>` + order + `</td>
+                <td><span class="label-item" style="background: ` + v.Color + `;">` + v.Name + `</span></td>
+                <td>` + v.Description + `</td>
+            </tr>` + "\n"
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		data := generateTemplate(list)
+		ctr.Str(w, data)
+	}
+}
+
+func generateTemplate(list string) string {
+	return `<!doctype html>
+<html xmlns=http://www.w3.org/1999/xhtml>
+<meta charset=utf-8>
+<title>Review Bot Command Help</title>
+<head>
+<style type="text/css">
+.list td {
+	text-align: left;
+}
+.label-item{
+    padding: 2px 10px;
+    border-radius: 4px;
+}
+</style>
+</head>
+<body>
+<div class="content">
+    <div class="list">
+        <table border="1" align="center" cellspacing="0" cellpadding="6">
+            <caption>Command Help</caption>
+
+            <thead>
+            <tr align="center">
+                <th>Order</th>
+                <th>Label Name</th>
+                <th>Description</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            ` + list + `
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let host = "http://" + window.location.host;
+
+    function createRequest(host, method, data, callback) {
+        let xhr = window.XMLHttpRequest ? new window.XMLHttpRequest() :
+            new window.ActiveXObject('Microsoft.XMLHTTP');
+        xhr.open(method || "GET", host, false);
+        xhr.onreadystatechange = function () {
+            //判断请求状态是否是已经完成
+            if (xhr.readyState === 4) {
+                //判断服务器是否返回成功200,304
+                if (xhr.status >= 200 && xhr.status <= 300 || xhr.status === 304) {
+                    //接收xhr的数据
+                    callback(xhr.responseText);
+                }
+            }
+        };
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        // xhr.setRequestHeader("Canhe-Control", "no-cache");//阻止浏览器读取缓存
+        xhr.send(data);
+    }
+</script>
+</body>
+</html>`
 }

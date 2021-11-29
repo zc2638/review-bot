@@ -60,7 +60,7 @@ func HandlerEvent() http.HandlerFunc {
 		}
 		switch event := webhook.(type) {
 		case *gitlab.MergeEvent:
-			err = processMergeEvent(event)
+			err = processMergeEvent(event, r.Host)
 		case *gitlab.MergeCommentEvent:
 			err = processMergeCommentEvent(event)
 		}
@@ -73,12 +73,12 @@ func HandlerEvent() http.HandlerFunc {
 }
 
 // 处理merge事件
-func processMergeEvent(event *gitlab.MergeEvent) error {
+func processMergeEvent(event *gitlab.MergeEvent, host string) error {
 	var err error
 	switch event.ObjectAttributes.Action {
 	case "merge", "close", "reopen":
 	case "open":
-		err = openEvent(event)
+		err = openEvent(event, host)
 	case "update":
 		err = updateEvent(event)
 	}
@@ -198,8 +198,21 @@ func getMembers(pid string, names []string) (map[string]scm.ProjectMember, error
 	return members, nil
 }
 
+func addAutoComment(namespace string, id int, host string) error {
+	commandHelpURL := "http://" + host + "/command-help"
+
+	content := `请求创建成功，恭喜您！
+请注意，合并时将会压缩所有commits，合并后的commit为title内容。
+可以在[【此处】](` + commandHelpURL + `)找到此机器人接受的命令的完整列表。
+
+Reviewers(代码审查人员)可以通过评论` + "`/lgtm`" + `来表示审查通过。
+Approvers(请求审批人员)可以通过评论` + "`/approve`" + `来表示审批通过。
+Approvers(请求审批人员)可以通过评论` + "`/force-merge`" + `来进行强制合并。`
+	return global.SCM().CreatePullRequestComment(namespace, id, content)
+}
+
 // 当pull request创建时，添加标签
-func openEvent(event *gitlab.MergeEvent) error {
+func openEvent(event *gitlab.MergeEvent, host string) error {
 	// 获取仓库review配置
 	config, err := global.SCM().GetReviewConfig(
 		event.Project.PathWithNamespace,
@@ -242,6 +255,12 @@ func openEvent(event *gitlab.MergeEvent) error {
 			AddLabels: addLabels,
 		}); err != nil {
 		return err
+	}
+
+	// 添加自动评论
+	if err := addAutoComment(event.Project.PathWithNamespace, event.ObjectAttributes.IID, host); err != nil {
+		// TODO 暂时忽略错误，需要处理，重复尝试5次
+		logrus.Warningf("open pull request add auto comment failed: %s", err)
 	}
 
 	// 获取reviewers的用户id
