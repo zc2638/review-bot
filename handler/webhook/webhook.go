@@ -121,49 +121,9 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 		}
 	}
 
-	// 匹配common标签
-	labels := scm.AddSet.FuzzyLabels(note)
-	for _, v := range labels {
-		addLabels = append(addLabels, v.Name)
-	}
-	labels = scm.RemoveSet.FuzzyLabels(note)
-	for _, v := range labels {
-		removeLabels = append(removeLabels, v.Name)
-	}
-
-	// 匹配custom标签
-	labels = scm.CustomSet.FuzzyLabels(note)
-	for _, v := range labels {
-		addLabels = append(addLabels, v.Name)
-	}
-	// 匹配移除custom标签
-	labels = scm.CustomSet.FuzzyLabelsWithPrefix("remove", note)
-	for _, v := range labels {
-		removeLabels = append(removeLabels, v.Name)
-	}
-
-	// 匹配配置内的custom标签
-	// 匹配移除配置内的custom标签
-	for _, v := range config.CustomLabels {
-		// 创建不存在的标签，添加custom标签到缓存
-		if !scm.RepoCached().IsExist(event.Project.PathWithNamespace, v.Name) {
-			// label创建失败暂不处理
-			if err := global.SCM().CreateLabel(event.Project.PathWithNamespace, &v); err != nil {
-				logrus.Warningf("Create label failed: %s", err)
-			} else {
-				scm.RepoCached().Add(event.Project.PathWithNamespace, v.Name)
-			}
-		}
-
-		removeOrder := strings.TrimPrefix(v.Order, "/")
-		removeOrder = "/remove-" + removeOrder
-		if strings.Contains(note, v.Order) {
-			addLabels = append(addLabels, v.Name)
-		}
-		if strings.Contains(note, removeOrder) {
-			removeLabels = append(removeLabels, v.Name)
-		}
-	}
+	adds, removes := dealCommonLabel(config, event.Project.PathWithNamespace, note)
+	addLabels = append(addLabels, adds...)
+	removeLabels = append(removeLabels, removes...)
 
 	if len(addLabels) == 0 && len(removeLabels) == 0 {
 		return nil
@@ -175,6 +135,53 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 			AddLabels:    addLabels,
 			RemoveLabels: removeLabels,
 		})
+}
+
+func dealCommonLabel(config *scm.ReviewConfig, repo string, content string) (adds []string, removes []string) {
+	// 匹配common标签
+	labels := scm.AddSet.FuzzyLabels(content)
+	for _, v := range labels {
+		adds = append(adds, v.Name)
+	}
+	labels = scm.RemoveSet.FuzzyLabels(content)
+	for _, v := range labels {
+		removes = append(removes, v.Name)
+	}
+
+	// 匹配custom标签
+	labels = scm.CustomSet.FuzzyLabels(content)
+	for _, v := range labels {
+		adds = append(adds, v.Name)
+	}
+	// 匹配移除custom标签
+	labels = scm.CustomSet.FuzzyLabelsWithPrefix("remove", content)
+	for _, v := range labels {
+		removes = append(removes, v.Name)
+	}
+
+	// 匹配配置内的custom标签
+	// 匹配移除配置内的custom标签
+	for _, v := range config.CustomLabels {
+		// 创建不存在的标签，添加custom标签到缓存
+		if !scm.RepoCached().IsExist(repo, v.Name) {
+			// label创建失败暂不处理
+			if err := global.SCM().CreateLabel(repo, &v); err != nil {
+				logrus.Warningf("Create label failed: %s", err)
+			} else {
+				scm.RepoCached().Add(repo, v.Name)
+			}
+		}
+
+		removeOrder := strings.TrimPrefix(v.Order, "/")
+		removeOrder = "/remove-" + removeOrder
+		if strings.Contains(content, v.Order) {
+			adds = append(adds, v.Name)
+		}
+		if strings.Contains(content, removeOrder) {
+			removes = append(removes, v.Name)
+		}
+	}
+	return
 }
 
 func getMembers(pid string, names []string) (map[string]scm.ProjectMember, error) {
@@ -236,20 +243,15 @@ func openEvent(event *gitlab.MergeEvent, host string) error {
 		logrus.Errorln(err)
 	}
 
-	var addLabels []string
-
-	labels := scm.CustomSet.FuzzyLabels(event.ObjectAttributes.Description)
-	for _, v := range labels {
-		addLabels = append(addLabels, v.Name)
-	}
-
 	// 更新labels
-	if len(addLabels) > 0 {
+	adds, removes := dealCommonLabel(config, event.Project.PathWithNamespace, event.ObjectAttributes.Description)
+	if len(adds) > 0 {
 		if err := global.SCM().UpdatePullRequest(
 			event.Project.PathWithNamespace,
 			event.ObjectAttributes.IID,
 			&scm.UpdatePullRequest{
-				AddLabels: addLabels,
+				AddLabels:    adds,
+				RemoveLabels: removes,
 			}); err != nil {
 			return err
 		}
