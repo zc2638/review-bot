@@ -21,6 +21,8 @@ import (
 	"net/http"
 	"strings"
 
+	"golang.org/x/sync/errgroup"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/zc2638/review-bot/pkg/util"
@@ -268,37 +270,43 @@ func openEvent(event *gitlab.MergeEvent, host string) error {
 	// 初始化所有需要的label
 	_ = initLabels(event)
 
-	// TODO 需要检查pipeline是否存在，所以暂不处理错误
-	// 添加review check流程
-	if err := global.SCM().UpdateBuildStatus(
-		event.Project.PathWithNamespace,
-		event.ObjectAttributes.LastCommit.ID,
-		scm.BuildStateRunning,
-	); err != nil {
-		logrus.Errorln(err)
-	}
+	var eg errgroup.Group
+	eg.Go(func() error {
+		// TODO 需要检查pipeline是否存在，所以暂不处理错误
+		// 添加review check流程
+		err := global.SCM().UpdateBuildStatus(
+			event.Project.PathWithNamespace,
+			event.ObjectAttributes.LastCommit.ID,
+			scm.BuildStateRunning,
+		)
+		return err
+	})
 
-	// 更新labels
-	adds, removes := dealCommonLabel(config, event.Project.PathWithNamespace, event.ObjectAttributes.Description)
-	if len(adds) > 0 {
-		if err := global.SCM().UpdatePullRequest(
+	eg.Go(func() error {
+		// 更新labels
+		adds, removes := dealCommonLabel(config, event.Project.PathWithNamespace, event.ObjectAttributes.Description)
+		if len(adds) == 0 {
+			return nil
+		}
+		return global.SCM().UpdatePullRequest(
 			event.Project.PathWithNamespace,
 			event.ObjectAttributes.IID,
 			&scm.UpdatePullRequest{
 				AddLabels:    adds,
 				RemoveLabels: removes,
-			}); err != nil {
-			return err
-		}
-	}
+			})
+	})
 
-	// TODO 暂时忽略错误，需要处理，重复尝试5次
-	// 添加自动评论
-	err = addAutoComment(config, event, host)
-	if err != nil {
-		logrus.Warningf("open pull request add auto comment failed: %s", err)
-	}
-	return err
+	eg.Go(func() error {
+		// TODO 暂时忽略错误，需要处理，重复尝试5次
+		// 添加自动评论
+		err = addAutoComment(config, event, host)
+		if err != nil {
+			logrus.Warningf("open pull request add auto comment failed: %s", err)
+		}
+		return err
+	})
+	return eg.Wait()
 }
 
 func updateEvent(event *gitlab.MergeEvent) error {
