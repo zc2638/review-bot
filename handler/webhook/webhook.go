@@ -184,7 +184,7 @@ func dealCommonLabel(config *scm.ReviewConfig, repo string, content string) (add
 	return
 }
 
-func getMembers(pid string, names []string) (map[string]scm.ProjectMember, error) {
+func getMembers(pid string, names []string) map[string]scm.ProjectMember {
 	var projectMembers []scm.ProjectMember
 	members := make(map[string]scm.ProjectMember)
 	for _, name := range names {
@@ -202,21 +202,56 @@ func getMembers(pid string, names []string) (map[string]scm.ProjectMember, error
 			members[name] = member
 		}
 	}
-	return members, nil
+	return members
 }
 
-func addAutoComment(namespace string, id int, host string) error {
-	commandHelpURL := "http://" + host + "/command-help"
+func addAutoComment(config *scm.ReviewConfig, event *gitlab.MergeEvent, host string) error {
+	repo := event.Project.PathWithNamespace
+	id := event.ObjectAttributes.IID
+	authorID := event.ObjectAttributes.AuthorID
 
-	content := `请求创建成功，恭喜您！  
-请注意，合并时将会压缩所有commits，合并后的commit为title内容。  
-可以在[【此处】](` + commandHelpURL + `)找到此机器人接受的命令的完整列表。  
+	count := 0
+	reviewers := make([]string, 0, 2)
+
+	// 获取reviewers的用户id
+	members := getMembers(repo, config.Reviewers)
+	for _, v := range members {
+		if v.ID == authorID { // 跳过请求提交者自己进行review
+			continue
+		}
+		reviewers = append(reviewers, "@"+v.Username)
+		count++
+		if count > 1 { // 限制每次请求两位reviewer
+			break
+		}
+	}
+
+	var reviewContent string
+	if len(reviewers) > 0 {
+		reviewData := make([]string, 0, 4)
+		reviewData = append(reviewData, "等待")
+		reviewData = append(reviewData, reviewers...)
+		reviewData = append(reviewData, "处理 review 请求")
+		reviewContent = strings.Join(reviewData, " ")
+	}
+
+	commandHelpURL := "http://" + host + "/command-help"
+	commitMsg := "合并后的 commit 信息为 title 内容"
+	if !config.PRConfig.SquashWithTitle {
+		commitMsg = "合并后的 commit 信息为 描述中`<!-- title --><!-- end title -->`之间的内容"
+	}
+
+	content := `恭喜您，请求创建成功！  
+` + reviewContent + `  
+
+请注意，合并时将会压缩所有 commits ，` + commitMsg + `。  
+可以在[【此处】](` + commandHelpURL + `)找到 bot 接受的完整指令列表。  
 
 Reviewers(代码审查人员)可以通过评论` + "`/lgtm`" + `来表示审查通过。  
 Approvers(请求审批人员)可以通过评论` + "`/approve`" + `来表示审批通过。  
 Approvers(请求审批人员)可以通过评论` + "`/force-merge`" + `来进行强制合并。  
 `
-	return global.SCM().CreatePullRequestComment(namespace, id, content)
+	return global.SCM().CreatePullRequestComment(repo, id, content)
 }
 
 // 当pull request创建时，添加标签
@@ -257,43 +292,13 @@ func openEvent(event *gitlab.MergeEvent, host string) error {
 		}
 	}
 
+	// TODO 暂时忽略错误，需要处理，重复尝试5次
 	// 添加自动评论
-	if err := addAutoComment(event.Project.PathWithNamespace, event.ObjectAttributes.IID, host); err != nil {
-		// TODO 暂时忽略错误，需要处理，重复尝试5次
+	err = addAutoComment(config, event, host)
+	if err != nil {
 		logrus.Warningf("open pull request add auto comment failed: %s", err)
 	}
-
-	// 获取reviewers的用户id
-	members, err := getMembers(event.Project.PathWithNamespace, config.Reviewers)
-	if err != nil {
-		return err
-	}
-	if len(members) > 0 {
-		count := 0
-		reviewers := make([]string, 0, 2)
-		for _, v := range members {
-			if v.ID == event.ObjectAttributes.AuthorID { // 跳过请求提交者自己进行review
-				continue
-			}
-			reviewers = append(reviewers, "@"+v.Username)
-			count++
-			if count > 1 { // 限制每次请求两位reviewer
-				break
-			}
-		}
-		if len(reviewers) > 0 {
-			reviewData := make([]string, 0, 4)
-			reviewData = append(reviewData, "等待")
-			reviewData = append(reviewData, reviewers...)
-			reviewData = append(reviewData, "处理review请求")
-			return global.SCM().CreatePullRequestComment(
-				event.Project.PathWithNamespace,
-				event.ObjectAttributes.IID,
-				strings.Join(reviewData, " "),
-			)
-		}
-	}
-	return nil
+	return err
 }
 
 func updateEvent(event *gitlab.MergeEvent) error {
