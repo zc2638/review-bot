@@ -16,6 +16,7 @@ require (
 	github.com/spf13/viper v1.7.1
 	github.com/xanzy/go-gitlab v0.42.0
 	github.com/zc2638/swag v1.1.4
+	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
