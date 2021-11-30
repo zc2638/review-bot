@@ -22,7 +22,7 @@ const DoNotMerge = "do-not-merge"
 type Set int
 
 const (
-	AutoSet Set = iota
+	_ Set = iota
 	AdminSet
 	AddSet
 	RemoveSet
@@ -31,8 +31,6 @@ const (
 
 func getLabelSet(s Set) map[string]Label {
 	switch s {
-	case AutoSet:
-		return autoSet
 	case AdminSet:
 		return adminSet
 	case AddSet:
@@ -159,13 +157,25 @@ var removeSet = map[string]Label{
 		Order:       "/wip cancel",
 		Name:        DoNotMerge + "/work-in-progress",
 		Color:       "#FF0000",
-		Description: "标识取消开发中状态",
+		Description: "取消开发中状态",
 	},
 	"HOLD": {
 		Order:       "/hold cancel",
 		Name:        DoNotMerge + "/hold",
 		Color:       "#FF0000",
-		Description: "标识取消hold状态",
+		Description: "取消hold状态",
+	},
+	"LGTM": {
+		Order:       "/lgtm cancel",
+		Name:        "lgtm",
+		Color:       "#5CB85C",
+		Description: "取消同意合并",
+	},
+	"APPROVE": {
+		Order:       "/approve cancel",
+		Name:        "approved",
+		Color:       "#5CB85C",
+		Description: "取消审批通过",
 	},
 }
 
@@ -185,7 +195,7 @@ var customSet = map[string]Label{
 		Description: "分类：新功能",
 	},
 	"BUGFIX": {
-		Order:       "/kind bugfix",
+		Order:       "/kind bug",
 		Name:        "kind/bugfix",
 		Short:       "fix",
 		Color:       "#F0AD4E",

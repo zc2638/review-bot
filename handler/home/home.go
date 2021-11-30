@@ -166,7 +166,7 @@ func commandHelp() http.HandlerFunc {
 
 			list += `<tr align="center">
                 <td>` + v.Order + `</td>
-                <td><span class="label-item" style="background: ` + v.Color + `;">` + v.Name + `</span></td>
+                <td></td>
                 <td>` + v.Description + `</td>
             </tr>` + "\n"
 		}

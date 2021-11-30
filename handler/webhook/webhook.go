@@ -201,13 +201,14 @@ func getMembers(pid string, names []string) (map[string]scm.ProjectMember, error
 func addAutoComment(namespace string, id int, host string) error {
 	commandHelpURL := "http://" + host + "/command-help"
 
-	content := `请求创建成功，恭喜您！
-请注意，合并时将会压缩所有commits，合并后的commit为title内容。
-可以在[【此处】](` + commandHelpURL + `)找到此机器人接受的命令的完整列表。
+	content := `请求创建成功，恭喜您！  
+请注意，合并时将会压缩所有commits，合并后的commit为title内容。  
+可以在[【此处】](` + commandHelpURL + `)找到此机器人接受的命令的完整列表。  
 
-Reviewers(代码审查人员)可以通过评论` + "`/lgtm`" + `来表示审查通过。
-Approvers(请求审批人员)可以通过评论` + "`/approve`" + `来表示审批通过。
-Approvers(请求审批人员)可以通过评论` + "`/force-merge`" + `来进行强制合并。`
+Reviewers(代码审查人员)可以通过评论` + "`/lgtm`" + `来表示审查通过。  
+Approvers(请求审批人员)可以通过评论` + "`/approve`" + `来表示审批通过。  
+Approvers(请求审批人员)可以通过评论` + "`/force-merge`" + `来进行强制合并。  
+`
 	return global.SCM().CreatePullRequestComment(namespace, id, content)
 }
 
@@ -225,13 +226,14 @@ func openEvent(event *gitlab.MergeEvent, host string) error {
 	// 初始化所有需要的label
 	_ = initLabels(event)
 
+	// TODO 需要检查pipeline是否存在，所以暂不处理错误
 	// 添加review check流程
 	if err := global.SCM().UpdateBuildStatus(
 		event.Project.PathWithNamespace,
 		event.ObjectAttributes.LastCommit.ID,
 		scm.BuildStateRunning,
 	); err != nil {
-		return err
+		logrus.Errorln(err)
 	}
 
 	var addLabels []string
@@ -240,21 +242,17 @@ func openEvent(event *gitlab.MergeEvent, host string) error {
 	for _, v := range labels {
 		addLabels = append(addLabels, v.Name)
 	}
-	if len(addLabels) == 0 {
-		label := scm.AutoSet.LabelByKey("KIND")
-		if label != nil {
-			addLabels = append(addLabels, label.Name)
-		}
-	}
 
 	// 更新labels
-	if err := global.SCM().UpdatePullRequest(
-		event.Project.PathWithNamespace,
-		event.ObjectAttributes.IID,
-		&scm.UpdatePullRequest{
-			AddLabels: addLabels,
-		}); err != nil {
-		return err
+	if len(addLabels) > 0 {
+		if err := global.SCM().UpdatePullRequest(
+			event.Project.PathWithNamespace,
+			event.ObjectAttributes.IID,
+			&scm.UpdatePullRequest{
+				AddLabels: addLabels,
+			}); err != nil {
+			return err
+		}
 	}
 
 	// 添加自动评论
@@ -297,6 +295,8 @@ func openEvent(event *gitlab.MergeEvent, host string) error {
 }
 
 func updateEvent(event *gitlab.MergeEvent) error {
+	// TODO 更新commit自动移除LGTM
+
 	// 获取仓库review配置
 	config, err := global.SCM().GetReviewConfig(
 		event.Project.PathWithNamespace,
@@ -394,7 +394,6 @@ func initLabels(event *gitlab.MergeEvent) error {
 	}
 
 	var allLabels []scm.Label
-	allLabels = append(allLabels, scm.AutoSet.Labels()...)
 	allLabels = append(allLabels, scm.AdminSet.Labels()...)
 	allLabels = append(allLabels, scm.AddSet.Labels()...)
 	allLabels = append(allLabels, scm.CustomSet.Labels()...)
@@ -467,7 +466,7 @@ func commentMerge(event *gitlab.MergeCommentEvent, config *scm.ReviewConfig) err
 		event.MergeRequest.LastCommit.ID,
 		scm.BuildStateSuccess,
 	); err != nil {
-		return err
+		logrus.Errorln(err)
 	}
 
 	// 执行合并
