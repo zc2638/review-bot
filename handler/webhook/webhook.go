@@ -161,26 +161,48 @@ func dealCommonLabel(config *scm.ReviewConfig, repo string, content string) (add
 		removes = append(removes, v.Name)
 	}
 
+	if len(config.CustomLabels) == 0 {
+		return
+	}
+
 	// 匹配配置内的custom标签
 	// 匹配移除配置内的custom标签
+	var currentLabels []scm.Label
 	for _, v := range config.CustomLabels {
-		// 创建不存在的标签，添加custom标签到缓存
-		if !scm.RepoCached().IsExist(repo, v.Name) {
-			// label创建失败暂不处理
-			if err := global.SCM().CreateLabel(repo, &v); err != nil {
-				logrus.Warningf("Create label failed: %s", err)
-			} else {
-				scm.RepoCached().Add(repo, v.Name)
-			}
-		}
-
 		removeOrder := strings.TrimPrefix(v.Order, "/")
 		removeOrder = "/remove-" + removeOrder
+		if strings.Contains(content, removeOrder) {
+			removes = append(removes, v.Name)
+		}
 		if strings.Contains(content, v.Order) {
 			adds = append(adds, v.Name)
 		}
-		if strings.Contains(content, removeOrder) {
-			removes = append(removes, v.Name)
+
+		if !scm.RepoCached().IsExist(repo, v.Name) {
+			if currentLabels == nil {
+				var err error
+				currentLabels, err = global.SCM().ListLabels(repo)
+				if err != nil {
+					logrus.Warningf("Sync custom labels failed: %s", err)
+					return
+				}
+			}
+
+			exists := false
+			for _, vv := range currentLabels {
+				if vv.Name == v.Name {
+					exists = true
+					break
+				}
+			}
+			if !exists {
+				// label创建失败暂不处理
+				if err := global.SCM().CreateLabel(repo, &v); err != nil {
+					logrus.Warningf("Create label failed: %s", err)
+					continue
+				}
+			}
+			scm.RepoCached().Add(repo, v.Name)
 		}
 	}
 	return
