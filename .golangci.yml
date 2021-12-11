@@ -41,7 +41,7 @@ output:
 
 linters-settings:
   goimports:
-    local-prefixes: backend
+    local-prefixes: github.com/zc2638
 
 linters:
   disable-all: true

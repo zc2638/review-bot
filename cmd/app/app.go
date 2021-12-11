@@ -37,7 +37,7 @@ func NewServerCommand() *cobra.Command {
 		SilenceUsage: true,
 		RunE:         run,
 	}
-	cfgFilePath := os.Getenv("KUBEEDGE_CONFIG")
+	cfgFilePath := os.Getenv(global.EnvPrefix + "_CONFIG")
 	if cfgFilePath == "" {
 		cfgFilePath = "config/config.yaml"
 	}
