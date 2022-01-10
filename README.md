@@ -17,11 +17,11 @@ scm:
   secret: <your-webhook-secret>
 ```
 
-| 配置项 | 环境变量 | 描述 |
-| :----: | :----: | :----: |
-| scm.host | BOT_SCM_HOST | 地址 |
-| scm.token | BOT_SCM_TOKEN | 私有token |
-| scm.secret | BOT_SCM_SECRET | webhook的访问密钥 |
+| Configuration Item | Environment Variable |          Description           |
+|:------------------:|:--------------------:|:------------------------------:|
+|      scm.host      |     BOT_SCM_HOST     | source code management address |
+|     scm.token      |    BOT_SCM_TOKEN     |         private token          |
+|     scm.secret     |    BOT_SCM_SECRET    |         webhook secret         |
 
 ### Run Local
 

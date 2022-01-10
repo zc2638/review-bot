@@ -21,10 +21,10 @@ import (
 	"os"
 
 	"github.com/pkgms/go/server"
-	"github.com/zc2638/review-bot/handler"
-
 	"github.com/spf13/cobra"
+
 	"github.com/zc2638/review-bot/global"
+	"github.com/zc2638/review-bot/handler"
 )
 
 var cfgFile string

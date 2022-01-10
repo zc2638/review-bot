@@ -154,25 +154,25 @@ var addSet = map[string]Label{
 
 var removeSet = map[string]Label{
 	"WIP": {
-		Order:       "/wip cancel",
+		Order:       "/remove-wip",
 		Name:        DoNotMerge + "/work-in-progress",
 		Color:       "#FF0000",
 		Description: "取消开发中状态",
 	},
 	"HOLD": {
-		Order:       "/hold cancel",
+		Order:       "/remove-hold",
 		Name:        DoNotMerge + "/hold",
 		Color:       "#FF0000",
 		Description: "取消hold状态",
 	},
 	"LGTM": {
-		Order:       "/lgtm cancel",
+		Order:       "/remove-lgtm",
 		Name:        "lgtm",
 		Color:       "#5CB85C",
 		Description: "取消同意合并",
 	},
 	"APPROVE": {
-		Order:       "/approve cancel",
+		Order:       "/remove-approve",
 		Name:        "approved",
 		Color:       "#5CB85C",
 		Description: "取消审批通过",

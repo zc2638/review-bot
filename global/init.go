@@ -18,6 +18,7 @@ package global
 import (
 	"github.com/pkgms/go/ctr"
 	"github.com/sirupsen/logrus"
+
 	"github.com/zc2638/review-bot/pkg/scm"
 )
 

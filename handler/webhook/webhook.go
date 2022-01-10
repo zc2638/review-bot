@@ -21,18 +21,15 @@ import (
 	"net/http"
 	"strings"
 
-	"golang.org/x/sync/errgroup"
-
-	"github.com/sirupsen/logrus"
-
-	"github.com/zc2638/review-bot/pkg/util"
-
-	"github.com/zc2638/review-bot/pkg/scm"
-
 	"github.com/pkg/errors"
 	"github.com/pkgms/go/ctr"
+	"github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
+	"golang.org/x/sync/errgroup"
+
 	"github.com/zc2638/review-bot/global"
+	"github.com/zc2638/review-bot/pkg/scm"
+	"github.com/zc2638/review-bot/pkg/util"
 )
 
 func HandlerEvent() http.HandlerFunc {
@@ -83,6 +80,10 @@ func processMergeEvent(event *gitlab.MergeEvent, host string) error {
 		err = openEvent(event, host)
 	case "update":
 		err = updateEvent(event)
+	case "approved":
+		err = approveEvent(event, true)
+	case "unapproved":
+		err = approveEvent(event, false)
 	}
 	return err
 }
@@ -416,6 +417,17 @@ func updateEvent(event *gitlab.MergeEvent) error {
 
 	// 执行合并
 	return global.SCM().MergePullRequest(event.Project.PathWithNamespace, event.ObjectAttributes.IID, opt)
+}
+
+func approveEvent(event *gitlab.MergeEvent, approved bool) error {
+	label := scm.AdminSet.LabelByKey("APPROVE").Name
+	opt := &scm.UpdatePullRequest{}
+	if approved {
+		opt.AddLabels = append(opt.AddLabels, label)
+	} else {
+		opt.RemoveLabels = append(opt.RemoveLabels, label)
+	}
+	return global.SCM().UpdatePullRequest(event.Project.PathWithNamespace, event.ObjectAttributes.IID, opt)
 }
 
 // 初始化所有label

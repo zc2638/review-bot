@@ -111,10 +111,9 @@ func (s *gitlabClient) GetPullRequest(pid string, prID int) (*PullRequest, error
 
 func (s *gitlabClient) UpdatePullRequest(pid string, prID int, data *UpdatePullRequest) error {
 	opt := &gitlab.UpdateMergeRequestOptions{
-		AssigneeIDs:  data.AssigneeIDs,
-		Labels:       data.Labels,
-		AddLabels:    data.AddLabels,
-		RemoveLabels: data.RemoveLabels,
+		AssigneeIDs:  &data.AssigneeIDs,
+		AddLabels:    (*gitlab.Labels)(&data.AddLabels),
+		RemoveLabels: (*gitlab.Labels)(&data.RemoveLabels),
 	}
 	if data.Title != "" {
 		opt.Title = &data.Title

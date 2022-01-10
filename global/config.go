@@ -24,6 +24,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/pkgms/go/server"
 	"github.com/spf13/viper"
+
 	"github.com/zc2638/review-bot/pkg/scm"
 )
 
