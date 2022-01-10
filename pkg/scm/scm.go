@@ -23,6 +23,7 @@ type Config struct {
 }
 
 type Interface interface {
+	GetReviewConfig(pid, ref string) (*ReviewConfig, error)
 	ListProjectMembers(pid string) ([]ProjectMember, error)
 	ListLabels(pid string) ([]Label, error)
 	CreateLabel(pid string, label *Label) error
@@ -31,7 +32,7 @@ type Interface interface {
 	UpdatePullRequest(pid string, prID int, data *UpdatePullRequest) error
 	UpdateBuildStatus(pid, sha string, state BuildState) error
 	MergePullRequest(pid string, prID int, data *MergePullRequest) error
-	GetReviewConfig(pid, ref string) (*ReviewConfig, error)
+	MergePullRequestApprove(pid string, prID int, approved bool) error
 }
 
 type BuildState = string

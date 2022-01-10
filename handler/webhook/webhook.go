@@ -131,6 +131,20 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 	if len(addLabels) == 0 && len(removeLabels) == 0 {
 		return nil
 	}
+
+	approveLabelName := scm.RemoveSet.LabelByKey("APPROVE").Name
+	for _, v := range removeLabels {
+		if v == approveLabelName {
+			// TODO Don't handle the error for now, continue to execute down.
+			_ = global.SCM().MergePullRequestApprove(
+				event.Project.PathWithNamespace,
+				event.MergeRequest.IID,
+				false,
+			)
+			break
+		}
+	}
+
 	return global.SCM().UpdatePullRequest(
 		event.Project.PathWithNamespace,
 		event.MergeRequest.IID,

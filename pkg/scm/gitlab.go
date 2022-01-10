@@ -213,3 +213,13 @@ func (s *gitlabClient) UpdateBuildStatus(pid, sha string, state BuildState) erro
 	_, _, err := s.client.Commits.SetCommitStatus(pid, sha, opt)
 	return err
 }
+
+func (s *gitlabClient) MergePullRequestApprove(pid string, prID int, approved bool) error {
+	var err error
+	if approved {
+		_, _, err = s.client.MergeRequestApprovals.ApproveMergeRequest(pid, prID, nil)
+	} else {
+		_, err = s.client.MergeRequestApprovals.UnapproveMergeRequest(pid, prID)
+	}
+	return err
+}
