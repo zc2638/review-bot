@@ -74,7 +74,7 @@ type UpdatePullRequest struct {
 	Description  string   `json:"description"`
 	TargetBranch string   `json:"target_branch"`
 	AssigneeID   int      `json:"assignee_id"`
-	AssigneeIDs  []int    `json:"assignee_i_ds"`
+	AssigneeIDs  []int    `json:"assignee_ids"`
 	Labels       []string `json:"labels"`
 	AddLabels    []string `json:"add_labels"`
 	RemoveLabels []string `json:"remove_labels"`

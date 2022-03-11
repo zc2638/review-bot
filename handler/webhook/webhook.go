@@ -136,6 +136,7 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 	for _, v := range removeLabels {
 		if v == approveLabelName {
 			// TODO Don't handle the error for now, continue to execute down.
+			// PREMIUM version supports this feature.
 			_ = global.SCM().MergePullRequestApprove(
 				event.Project.PathWithNamespace,
 				event.MergeRequest.IID,
@@ -145,13 +146,13 @@ func processMergeCommentEvent(event *gitlab.MergeCommentEvent) error {
 		}
 	}
 
-	return global.SCM().UpdatePullRequest(
-		event.Project.PathWithNamespace,
-		event.MergeRequest.IID,
-		&scm.UpdatePullRequest{
-			AddLabels:    addLabels,
-			RemoveLabels: removeLabels,
-		})
+	opt := &scm.UpdatePullRequest{
+		AddLabels:    addLabels,
+		RemoveLabels: removeLabels,
+		AssigneeID:   event.MergeRequest.AssigneeID,
+		AssigneeIDs:  event.MergeRequest.AssigneeIDs,
+	}
+	return global.SCM().UpdatePullRequest(event.Project.PathWithNamespace, event.MergeRequest.IID, opt)
 }
 
 func dealCommonLabel(config *scm.ReviewConfig, repo string, content string) (adds []string, removes []string) {
@@ -325,13 +326,13 @@ func openEvent(event *gitlab.MergeEvent, host string) error {
 		if len(adds) == 0 {
 			return nil
 		}
-		return global.SCM().UpdatePullRequest(
-			event.Project.PathWithNamespace,
-			event.ObjectAttributes.IID,
-			&scm.UpdatePullRequest{
-				AddLabels:    adds,
-				RemoveLabels: removes,
-			})
+
+		opt := &scm.UpdatePullRequest{
+			AddLabels:    adds,
+			RemoveLabels: removes,
+		}
+		completeAssignees(event, opt)
+		return global.SCM().UpdatePullRequest(event.Project.PathWithNamespace, event.ObjectAttributes.IID, opt)
 	})
 
 	eg.Go(func() error {
@@ -441,6 +442,8 @@ func approveEvent(event *gitlab.MergeEvent, approved bool) error {
 	} else {
 		opt.RemoveLabels = append(opt.RemoveLabels, label)
 	}
+
+	completeAssignees(event, opt)
 	return global.SCM().UpdatePullRequest(event.Project.PathWithNamespace, event.ObjectAttributes.IID, opt)
 }
 
@@ -538,4 +541,16 @@ func commentMerge(event *gitlab.MergeCommentEvent, config *scm.ReviewConfig) err
 		event.MergeRequest.IID,
 		opt,
 	)
+}
+
+func completeAssignees(event *gitlab.MergeEvent, opt *scm.UpdatePullRequest) {
+	getAssigneeIDs := func(event *gitlab.MergeEvent) []int {
+		var ids []int
+		for _, v := range event.Assignees {
+			ids = append(ids, v.ID)
+		}
+		return ids
+	}
+	opt.AssigneeIDs = getAssigneeIDs(event)
+	opt.AssigneeID = event.Assignee.ID
 }
