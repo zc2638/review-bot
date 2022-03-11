@@ -21,12 +21,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 type JwtClaims struct {
 	Auth *JwtAuthInfo `json:",inline"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 type JwtAuthInfo struct {

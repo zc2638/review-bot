@@ -19,7 +19,7 @@ import (
 	"path"
 
 	"github.com/xanzy/go-gitlab"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type gitlabClient struct {
