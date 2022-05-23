@@ -1,6 +1,6 @@
 功能分类:
 
-/kind bugfix
+/kind cleanup
 
 提交内容的简短描述:
 <!-- title -->

@@ -28,7 +28,7 @@ type ReviewConfig struct {
 
 type PullRequestConfig struct {
 	// 合并信息以PR的标题为主，否则以PR描述模板内的 <!-- title -->内容<!-- end title--> 内容为主
-	SquashWithTitle bool `json:"squash_with_title"`
+	SquashWithTitle bool `json:"squash_with_title" yaml:"squash_with_title"`
 }
 
 type Label struct {

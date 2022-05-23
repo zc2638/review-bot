@@ -16,6 +16,7 @@ limitations under the License.
 package webhook
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -435,6 +436,18 @@ func updateEvent(event *gitlab.MergeEvent) error {
 }
 
 func approveEvent(event *gitlab.MergeEvent, approved bool) error {
+	// 获取仓库review配置
+	config, err := global.SCM().GetReviewConfig(
+		event.Project.PathWithNamespace,
+		event.Project.DefaultBranch, // 获取默认分支的配置
+	)
+	if err != nil {
+		return err
+	}
+	if _, ok := util.InStringSlice(config.Approvers, event.User.Username); !ok {
+		return fmt.Errorf("this user(%s) does not have the approve permission, the operation is prohibited", event.User.Username)
+	}
+
 	label := scm.AdminSet.LabelByKey("APPROVE").Name
 	opt := &scm.UpdatePullRequest{}
 	if approved {

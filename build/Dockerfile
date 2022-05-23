@@ -1,5 +1,5 @@
 FROM golang:1.16-alpine as builder
-ENV GOPROXY=https://goproxy.io,direct
+ENV GOPROXY=https://goproxy.cn,https://goproxy.io,direct
 ENV GO111MODULE=on
 
 WORKDIR /go/cache
@@ -15,7 +15,10 @@ FROM alpine:3.6 as alpine
 RUN apk add -U --no-cache ca-certificates
 
 FROM alpine
-ENV TS="Asia/Shanghai"
+ENV TZ="Asia/Shanghai"
+
+RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo $TZ > /etc/timezone \
 
 COPY --from=alpine /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /work/app /work/app

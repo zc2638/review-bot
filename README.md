@@ -53,6 +53,7 @@ docker run -d -p 2640:2640 -e BOT_SCM_HOST=https://gitlab.com -e BOT_SCM_TOKEN=<
 
 ### Setting
 
+- add webhook to associated project, URL is `http://<your-host-address>/webhook`
 - the `review-bot` user must have your project permissions
 - webhook must set sufficient permissions(e.g. `Comments`、`Confidential Comments`、`Pull request events`)
 
