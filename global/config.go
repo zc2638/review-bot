@@ -35,6 +35,11 @@ const JWTSecret = "bot"
 type Config struct {
 	Server server.Config `json:"server"`
 	SCM    scm.Config    `json:"scm"`
+	Logger LoggerConfig  `json:"logger"`
+}
+
+type LoggerConfig struct {
+	Level string `json:"level"` // debug、info、warn、error、fatal、panic、trace
 }
 
 func Environ() *Config {

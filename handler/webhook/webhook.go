@@ -564,6 +564,10 @@ func completeAssignees(event *gitlab.MergeEvent, opt *scm.UpdatePullRequest) {
 		}
 		return ids
 	}
-	opt.AssigneeIDs = getAssigneeIDs(event)
-	opt.AssigneeID = event.Assignee.ID
+	if event.Assignees != nil {
+		opt.AssigneeIDs = getAssigneeIDs(event)
+	}
+	if event.Assignee != nil {
+		opt.AssigneeID = event.Assignee.ID
+	}
 }

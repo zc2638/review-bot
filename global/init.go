@@ -16,6 +16,8 @@ limitations under the License.
 package global
 
 import (
+	"fmt"
+
 	"github.com/pkgms/go/ctr"
 	"github.com/sirupsen/logrus"
 
@@ -26,6 +28,13 @@ var config *Config
 
 func InitCfg(cfg *Config) (err error) {
 	config = cfg
+
+	level, err := logrus.ParseLevel(cfg.Logger.Level)
+	if err != nil {
+		return fmt.Errorf("parse logger level failed: %v", err)
+	}
+	logrus.SetLevel(level)
+
 	logrus.SetFormatter(&logrus.TextFormatter{
 		ForceColors:            true,
 		DisableLevelTruncation: true,

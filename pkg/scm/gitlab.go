@@ -18,6 +18,8 @@ package scm
 import (
 	"path"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/xanzy/go-gitlab"
 	"gopkg.in/yaml.v3"
 )
@@ -111,7 +113,6 @@ func (s *gitlabClient) GetPullRequest(pid string, prID int) (*PullRequest, error
 
 func (s *gitlabClient) UpdatePullRequest(pid string, prID int, data *UpdatePullRequest) error {
 	opt := &gitlab.UpdateMergeRequestOptions{
-		AssigneeIDs:  &data.AssigneeIDs,
 		AddLabels:    (*gitlab.Labels)(&data.AddLabels),
 		RemoveLabels: (*gitlab.Labels)(&data.RemoveLabels),
 	}
@@ -127,6 +128,11 @@ func (s *gitlabClient) UpdatePullRequest(pid string, prID int, data *UpdatePullR
 	if data.AssigneeID > 0 {
 		opt.AssigneeID = &data.AssigneeID
 	}
+	if len(data.AssigneeIDs) > 0 {
+		opt.AssigneeIDs = &data.AssigneeIDs
+	}
+	logrus.Debugf("UpdatePullRequest before options: %+v", opt)
+	logrus.Debugf("UpdateMergeRequest after options: %+v", opt)
 	_, _, err := s.client.MergeRequests.UpdateMergeRequest(pid, prID, opt)
 	return err
 }
