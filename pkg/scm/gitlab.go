@@ -1,18 +1,17 @@
-/*
-Copyright © 2021 zc2638 <zc2638@qq.com>.
+// Copyright © 2021 zc2638 <zc2638@qq.com>.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package scm
 
 import (
@@ -113,6 +112,7 @@ func (s *gitlabClient) GetPullRequest(pid string, prID int) (*PullRequest, error
 
 func (s *gitlabClient) UpdatePullRequest(pid string, prID int, data *UpdatePullRequest) error {
 	opt := &gitlab.UpdateMergeRequestOptions{
+		Labels:       (*gitlab.Labels)(&data.Labels),
 		AddLabels:    (*gitlab.Labels)(&data.AddLabels),
 		RemoveLabels: (*gitlab.Labels)(&data.RemoveLabels),
 	}
@@ -131,8 +131,7 @@ func (s *gitlabClient) UpdatePullRequest(pid string, prID int, data *UpdatePullR
 	if len(data.AssigneeIDs) > 0 {
 		opt.AssigneeIDs = &data.AssigneeIDs
 	}
-	logrus.Debugf("UpdatePullRequest before options: %+v", opt)
-	logrus.Debugf("UpdateMergeRequest after options: %+v", opt)
+	logrus.Debugf("UpdateMergeRequest options: %+v", opt)
 	_, _, err := s.client.MergeRequests.UpdateMergeRequest(pid, prID, opt)
 	return err
 }

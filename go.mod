@@ -5,21 +5,19 @@ go 1.16
 require (
 	github.com/go-chi/chi v1.5.1
 	github.com/go-chi/cors v1.1.1
-	github.com/mitchellh/go-homedir v1.1.0
-	github.com/mitchellh/mapstructure v1.1.2
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pkg/errors v0.8.1
-	github.com/pkgms/go v0.0.0-20210922085647-58df1ef17e4f
+	github.com/pkgms/go v0.0.0-20220316065414-13c40cbbea1a
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.1.1
-	github.com/spf13/viper v1.7.1
 	github.com/xanzy/go-gitlab v0.54.3
 	github.com/zc2638/swag v1.1.4
-	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881 // indirect
 )
 
 require (
+	github.com/99nil/go v0.0.0-20210924013233-ebd290da12d6
 	github.com/golang-jwt/jwt/v4 v4.3.0
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect

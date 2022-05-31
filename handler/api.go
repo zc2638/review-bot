@@ -18,6 +18,8 @@ package handler
 import (
 	"net/http"
 
+	"github.com/zc2638/review-bot/global"
+
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -41,7 +43,7 @@ func New() http.Handler {
 	apiDoc.AddEndpointFunc(
 		home.Register,
 	)
-	mux.Post("/webhook", webhook.HandlerEvent())
+	mux.Post("/webhook", webhook.HandlerEvent(&global.Cfg().SCM, global.SCM()))
 
 	apiDoc.RegisterMuxWithData(mux, false)
 	return mux

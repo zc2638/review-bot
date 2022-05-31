@@ -4,9 +4,6 @@
 
 gitlab review-bot
 
-## Preconditions
-- Gitlab version 13+
-
 ## Quick start
 
 ### Config
