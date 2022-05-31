@@ -32,8 +32,11 @@ go run github.com/zc2638/review-bot/cmd -c config/config.yaml
 ### Run Docker
 
 ```
-docker build -t review-bot -f build/Dockerfile .
-docker run -d -p 2640:2640 -e BOT_SCM_HOST=https://gitlab.com -e BOT_SCM_TOKEN=<your-private-token> -e BOT_SCM_SECRET=<your-webhook-secret> review-bot
+docker run -d -p 2640:2640 \
+    -e BOT_SCM_HOST=https://gitlab.com \
+    -e BOT_SCM_TOKEN=<your-private-token> \
+    -e BOT_SCM_SECRET=<your-webhook-secret> \
+    zc2638/review-bot:latest
 ```
 
 ## Note
