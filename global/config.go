@@ -15,7 +15,7 @@
 package global
 
 import (
-	"github.com/pkgms/go/server"
+	"github.com/99nil/gopkg/server"
 
 	"github.com/zc2638/review-bot/pkg/scm"
 )

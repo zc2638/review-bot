@@ -17,7 +17,7 @@ package global
 import (
 	"fmt"
 
-	"github.com/pkgms/go/ctr"
+	"github.com/99nil/gopkg/ctr"
 	"github.com/sirupsen/logrus"
 
 	"github.com/zc2638/review-bot/pkg/scm"
@@ -41,7 +41,7 @@ func InitCfg(cfg *Config) (err error) {
 		FullTimestamp:          true,
 		TimestampFormat:        "2006/01/02 15:04:05",
 	})
-	ctr.InitLog(logrus.StandardLogger())
+	ctr.InitLogger(logrus.StandardLogger())
 	return initSCM(&cfg.SCM)
 }
 

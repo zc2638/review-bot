@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pkgms/go/server"
+	"github.com/99nil/gopkg/server"
 	"github.com/spf13/cobra"
 
 	"github.com/zc2638/review-bot/global"

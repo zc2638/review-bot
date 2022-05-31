@@ -20,14 +20,12 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/99nil/gopkg/ctr"
+	"github.com/pkg/errors"
 	"github.com/xanzy/go-gitlab"
 
-	"github.com/zc2638/review-bot/handler/webhook/event"
-
-	"github.com/pkg/errors"
-	"github.com/pkgms/go/ctr"
-
 	"github.com/zc2638/review-bot/global"
+	"github.com/zc2638/review-bot/handler/webhook/event"
 	"github.com/zc2638/review-bot/pkg/scm"
 	"github.com/zc2638/review-bot/pkg/util"
 )

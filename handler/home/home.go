@@ -27,15 +27,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/zc2638/review-bot/pkg/scm"
-
+	"github.com/99nil/gopkg/ctr"
 	"github.com/pkg/errors"
 
 	"github.com/zc2638/review-bot/global"
-
+	"github.com/zc2638/review-bot/pkg/scm"
 	"github.com/zc2638/review-bot/pkg/util"
-
-	"github.com/pkgms/go/ctr"
 )
 
 func index() http.HandlerFunc {
