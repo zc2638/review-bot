@@ -1,3 +1,5 @@
+server:
+  port: 2640
 scm:
   host: https://gitlab.com
   token: <your-private-token>

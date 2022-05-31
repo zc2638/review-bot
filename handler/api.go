@@ -18,12 +18,13 @@ package handler
 import (
 	"net/http"
 
-	"github.com/zc2638/review-bot/global"
+	"github.com/zc2638/swag/option"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
 
+	"github.com/zc2638/review-bot/global"
 	"github.com/zc2638/review-bot/handler/home"
 	"github.com/zc2638/review-bot/handler/webhook"
 	"github.com/zc2638/swag"
@@ -38,13 +39,15 @@ func New() http.Handler {
 	)
 
 	apiDoc := swag.New(
-		swag.Title("Review Bot API Doc"),
+		option.Title("Review Bot API Doc"),
 	)
-	apiDoc.AddEndpointFunc(
-		home.Register,
-	)
-	mux.Post("/webhook", webhook.HandlerEvent(&global.Cfg().SCM, global.SCM()))
+	apiDoc.AddEndpointFunc(home.Register)
+	apiDoc.Walk(func(path string, e *swag.Endpoint) {
+		mux.Method(e.Method, path, e.Handler.(http.Handler))
+	})
 
-	apiDoc.RegisterMuxWithData(mux, false)
+	mux.Post("/webhook", webhook.HandlerEvent(&global.Cfg().SCM, global.SCM()))
+	mux.Handle("/swagger/json", apiDoc.Handler())
+	mux.Mount("/swagger/ui", swag.UIHandler("/swagger/ui", "/swagger/json", true))
 	return mux
 }

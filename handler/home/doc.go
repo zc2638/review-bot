@@ -17,11 +17,14 @@ package home
 import (
 	"net/http"
 
+	"github.com/zc2638/swag/types"
+
+	"github.com/zc2638/swag"
+
 	"github.com/zc2638/swag/endpoint"
-	"github.com/zc2638/swag/swagger"
 )
 
-func Register(doc *swagger.API) {
+func Register(doc *swag.API) {
 	doc.AddEndpoint(
 		endpoint.New(
 			http.MethodGet, "/",
@@ -33,8 +36,8 @@ func Register(doc *swagger.API) {
 			http.MethodGet, "/secret",
 			endpoint.Handler(secret()),
 			endpoint.Summary("生成webhook密钥"),
-			endpoint.Query("namespace", "string", "仓库中间名称", true),
-			endpoint.Query("name", "string", "仓库名称", true),
+			endpoint.Query("namespace", types.String, "仓库中间名称", true),
+			endpoint.Query("name", types.String, "仓库名称", true),
 			endpoint.ResponseSuccess(),
 			endpoint.NoSecurity(),
 		),
@@ -42,7 +45,7 @@ func Register(doc *swagger.API) {
 			http.MethodGet, "/download",
 			endpoint.Handler(download("")),
 			endpoint.Summary("模板文件下载"),
-			endpoint.QueryDefault("type", "string", "版本系统类型", "gitlab", true),
+			endpoint.QueryDefault("type", types.String, "版本系统类型", "gitlab", true),
 			endpoint.ResponseSuccess(),
 			endpoint.NoSecurity(),
 		),
